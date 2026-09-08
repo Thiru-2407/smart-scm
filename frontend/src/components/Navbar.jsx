@@ -71,6 +71,13 @@ const Navbar = () => {
               Impact Analysis
             </NavLink>
             <NavLink
+              to="/release-readiness"
+              className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+              id="nav-link-readiness"
+            >
+              Release Readiness
+            </NavLink>
+            <NavLink
               to="/uvcs"
               className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
               id="nav-link-uvcs"

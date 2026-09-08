@@ -15,6 +15,7 @@ import UVCS from './pages/UVCS';
 import Activity from './pages/Activity';
 import Traceability from './pages/Traceability';
 import ImpactAnalysis from './pages/ImpactAnalysis';
+import ReleaseReadiness from './pages/ReleaseReadiness';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route path="/activity" element={<Activity />} />
             <Route path="/traceability" element={<Traceability />} />
             <Route path="/impact-analysis" element={<ImpactAnalysis />} />
+            <Route path="/release-readiness" element={<ReleaseReadiness />} />
             <Route path="/uvcs" element={<UVCS />} />
           </Route>
 

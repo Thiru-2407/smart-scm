@@ -364,6 +364,16 @@ const ReleaseDetails = () => {
               </button>
             )}
 
+            <Link
+              to={`/release-readiness?release=${release._id}`}
+              className="btn-secondary"
+              id="btn-release-readiness-link"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', textDecoration: 'none' }}
+              title="Audit SCM release readiness, blockers, and governance compliance"
+            >
+              🛡️ Release Readiness
+            </Link>
+
             {/* Workflow Progression Controls */}
             {canManage && release.status === 'draft' && (
               <button
@@ -609,6 +619,20 @@ const ReleaseDetails = () => {
                         )}
                       </span>
                     )}
+                  </span>
+                </div>
+
+                <div className="meta-row" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                  <span className="meta-label">SCM Readiness</span>
+                  <span className="meta-value">
+                    <Link
+                      to={`/release-readiness?release=${release._id}`}
+                      className="btn btn-outline btn-sm"
+                      id="meta-btn-release-readiness"
+                      style={{ padding: '0.2rem 0.6rem', fontSize: '0.78rem' }}
+                    >
+                      🛡️ Evaluate Readiness &rarr;
+                    </Link>
                   </span>
                 </div>
               </div>

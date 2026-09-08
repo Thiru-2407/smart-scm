@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -33,14 +33,23 @@ const statusBadgeColors = {
 
 const Traceability = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialRelease = searchParams.get('release') || '';
 
   const [traceabilityData, setTraceabilityData] = useState(null);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedVersion, setSelectedVersion] = useState('');
-  const [selectedRelease, setSelectedRelease] = useState('');
+  const [selectedRelease, setSelectedRelease] = useState(initialRelease);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedRowIndex, setSelectedRowIndex] = useState(0);
+
+  useEffect(() => {
+    const rel = searchParams.get('release');
+    if (rel) {
+      setSelectedRelease(rel);
+    }
+  }, [searchParams]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');

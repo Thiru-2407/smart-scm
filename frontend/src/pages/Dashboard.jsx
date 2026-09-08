@@ -613,6 +613,35 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {/* Phase 16: Release Readiness & Governance Widget */}
+        <section className="readiness-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3>Release Readiness &amp; Governance</h3>
+              <p>Verify pre-publication SCM readiness, blocking conditions, and 8-gate compliance.</p>
+            </div>
+            <Link to="/release-readiness" className="btn btn-outline btn-sm" id="btn-check-readiness">
+              Check Readiness &rarr;
+            </Link>
+          </div>
+
+          <div className="card" id="dashboard-readiness-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #10b981' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: '700', color: '#1e293b' }}>
+                  Pre-Publication Configuration Governance
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.4 }}>
+                  Ensure releases meet SCM criteria before publishing: version state, defect resolution, change request approval, traceability alignment, UVCS baseline verification, and governance sign-off.
+                </p>
+              </div>
+              <Link to="/release-readiness" className="btn btn-primary btn-sm" id="dashboard-btn-readiness-cta">
+                Evaluate Releases &rarr;
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Phase 13: Recent SCM Activity Stream */}
         <section className="recent-activity-section" style={{ marginBottom: '2.5rem' }}>
           <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -875,6 +904,13 @@ const Dashboard = () => {
               <h4>Change Impact Analysis</h4>
               <p>Downstream defect, baseline, and release propagation evaluation with dynamic risk severity.</p>
               <span className="badge-active">Phase 15 - Active</span>
+            </div>
+
+            <div className="module-card active-module" id="card-roadmap-phase16">
+              <div className="module-icon">🛡️</div>
+              <h4>Release Readiness &amp; Governance</h4>
+              <p>Pre-publication 8-gate SCM audit, dynamic scoring, blocking conditions, and stage pipeline.</p>
+              <span className="badge-active">Phase 16 - Active</span>
             </div>
           </div>
         </section>
