@@ -1,4 +1,8 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const rawBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+const API_BASE_URL = cleanBaseUrl.endsWith('/api')
+  ? cleanBaseUrl
+  : `${cleanBaseUrl}/api`;
 
 /**
  * Common fetch wrapper with automatic JWT token attachment and error handling
@@ -19,10 +23,18 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+
+    // Read response as text first to handle non-JSON responses gracefully
+    const rawText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      data = { message: rawText || `HTTP Error ${response.status}` };
+    }
 
     if (!response.ok) {
-      const error = new Error(data.message || 'Something went wrong with the request');
+      const error = new Error(data?.message || `Request failed with status ${response.status}`);
       error.status = response.status;
       error.data = data;
       throw error;
