@@ -17,6 +17,15 @@ let cachedCmPath = null;
  * Detect the working cm.exe binary on the system
  */
 async function detectCli() {
+  if (process.env.DISABLE_UVCS === 'true') {
+    return {
+      installed: false,
+      path: null,
+      version: null,
+      error: 'Unity Version Control CLI is disabled via DISABLE_UVCS environment variable.'
+    };
+  }
+
   if (cachedCmPath) {
     try {
       const version = await getCmVersion(cachedCmPath);
@@ -45,7 +54,7 @@ async function detectCli() {
     installed: false,
     path: null,
     version: null,
-    error: 'Unity Version Control CLI (cm.exe) was not found in standard paths or PATH.'
+    error: 'Unity Version Control CLI (cm) was not found in standard paths or PATH.'
   };
 }
 
@@ -301,6 +310,9 @@ async function getStatus() {
  * Get branch list for default@local repository
  */
 async function getBranches(repositorySpec = 'default@local') {
+  const cliInfo = await detectCli();
+  if (!cliInfo.installed) return [];
+
   const xml = await execCm(['find', 'branch', `on repository '${repositorySpec}'`, '--xml']);
   const rawBranches = parseXmlTags(xml, 'BRANCH');
 
@@ -331,6 +343,9 @@ async function getBranches(repositorySpec = 'default@local') {
  * Get changeset history for default@local repository
  */
 async function getChangesets(repositorySpec = 'default@local') {
+  const cliInfo = await detectCli();
+  if (!cliInfo.installed) return [];
+
   const xml = await execCm(['find', 'changeset', `on repository '${repositorySpec}'`, '--xml']);
   const rawChangesets = parseXmlTags(xml, 'CHANGESET');
 
@@ -362,6 +377,9 @@ async function getChangesetById(changesetId, repositorySpec = 'default@local') {
   if (isNaN(numericId)) {
     throw new Error(`Invalid changeset ID: '${changesetId}'`);
   }
+
+  const cliInfo = await detectCli();
+  if (!cliInfo.installed) return null;
 
   // Find changeset via query to verify existence and metadata
   const all = await getChangesets(repositorySpec);
@@ -414,6 +432,13 @@ async function validateChangeset(changesetId, repositorySpec = 'default@local') 
   if (isNaN(numericId)) return { valid: false, error: 'Changeset ID must be a valid number' };
 
   try {
+    const cliInfo = await detectCli();
+    if (!cliInfo.installed) {
+      return {
+        valid: false,
+        error: 'Unity Version Control CLI is not installed or accessible in this environment. Cannot validate repository changesets.'
+      };
+    }
     const cs = await getChangesetById(numericId, repositorySpec);
     if (!cs) {
       return {
@@ -437,6 +462,17 @@ async function validateChangeset(changesetId, repositorySpec = 'default@local') 
  * Get workspace controlled changes safely
  */
 async function getControlledChanges() {
+  const cliInfo = await detectCli();
+  if (!cliInfo.installed) {
+    return {
+      success: true,
+      hasChanges: false,
+      count: 0,
+      changes: [],
+      error: cliInfo.error
+    };
+  }
+
   try {
     const xml = await execCm(['status', '--controlledchanged', '--xml']);
     const statusData = parseStatusXml(xml);

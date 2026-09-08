@@ -28,9 +28,21 @@ const getUVCSStatus = async (req, res) => {
 const getUVCSBranches = async (req, res) => {
   try {
     const repository = req.query.repository || 'default@local';
+    const cliInfo = await uvcsService.detectCli();
+    if (!cliInfo.installed) {
+      return res.status(200).json({
+        success: true,
+        available: false,
+        message: 'Unity Version Control CLI is not installed or accessible on this system.',
+        count: 0,
+        branches: []
+      });
+    }
+
     const branches = await uvcsService.getBranches(repository);
     return res.status(200).json({
       success: true,
+      available: true,
       count: branches.length,
       branches
     });
@@ -50,9 +62,21 @@ const getUVCSBranches = async (req, res) => {
 const getUVCSChangesets = async (req, res) => {
   try {
     const repository = req.query.repository || 'default@local';
+    const cliInfo = await uvcsService.detectCli();
+    if (!cliInfo.installed) {
+      return res.status(200).json({
+        success: true,
+        available: false,
+        message: 'Unity Version Control CLI is not installed or accessible on this system.',
+        count: 0,
+        changesets: []
+      });
+    }
+
     const changesets = await uvcsService.getChangesets(repository);
     return res.status(200).json({
       success: true,
+      available: true,
       count: changesets.length,
       changesets
     });
@@ -82,6 +106,15 @@ const getUVCSChangesetDetails = async (req, res) => {
       });
     }
 
+    const cliInfo = await uvcsService.detectCli();
+    if (!cliInfo.installed) {
+      return res.status(200).json({
+        success: false,
+        available: false,
+        message: 'Unity Version Control CLI is not installed or accessible in this environment.'
+      });
+    }
+
     const changeset = await uvcsService.getChangesetById(numericId, repository);
     if (!changeset) {
       return res.status(404).json({
@@ -92,6 +125,7 @@ const getUVCSChangesetDetails = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      available: true,
       changeset
     });
   } catch (error) {
@@ -109,9 +143,22 @@ const getUVCSChangesetDetails = async (req, res) => {
  */
 const getWorkspaceChanges = async (req, res) => {
   try {
+    const cliInfo = await uvcsService.detectCli();
+    if (!cliInfo.installed) {
+      return res.status(200).json({
+        success: true,
+        available: false,
+        hasChanges: false,
+        count: 0,
+        changes: [],
+        message: 'Unity Version Control workspace is not available in this environment.'
+      });
+    }
+
     const changes = await uvcsService.getControlledChanges();
     return res.status(200).json({
       success: true,
+      available: true,
       ...changes
     });
   } catch (error) {
