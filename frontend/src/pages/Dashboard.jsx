@@ -678,11 +678,11 @@ const Dashboard = () => {
               <span className="badge-active">Phase 9 - Active</span>
             </div>
 
-            <div className="module-card">
+            <div className="module-card active-module">
               <div className="module-icon">🔄</div>
               <h4>Unity Version Control (SCM)</h4>
               <p>Traceable changeset mapping, branches, and rollback history.</p>
-              <span className="badge-upcoming">Phase 10</span>
+              <span className="badge-active">Phase 10 - Active</span>
             </div>
           </div>
         </section>
