@@ -13,6 +13,7 @@ import ReleaseDetails from './pages/ReleaseDetails';
 import Reports from './pages/Reports';
 import UVCS from './pages/UVCS';
 import Activity from './pages/Activity';
+import Traceability from './pages/Traceability';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
             <Route path="/projects/:projectId/releases/:releaseId" element={<ReleaseDetails />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/activity" element={<Activity />} />
+            <Route path="/traceability" element={<Traceability />} />
             <Route path="/uvcs" element={<UVCS />} />
           </Route>
 

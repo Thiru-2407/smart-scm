@@ -63,7 +63,18 @@ const changeRequestSchema = new mongoose.Schema(
       trim: true,
       maxlength: [2000, 'Implementation notes cannot exceed 2000 characters'],
       default: ''
-    }
+    },
+    targetVersion: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Version',
+      default: null
+    },
+    relatedBugs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Bug'
+      }
+    ]
   },
   {
     timestamps: true

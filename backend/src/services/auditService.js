@@ -45,7 +45,7 @@ const sanitizeMetadata = (obj, depth = 0) => {
  * @param {string|ObjectId} params.project - Project ID
  * @param {string|ObjectId} params.actor - User ID of actor performing the action
  * @param {string} params.action - Action identifier enum (e.g. PROJECT_CREATED, BUG_UPDATED)
- * @param {string} params.entityType - 'Project' | 'Version' | 'Bug' | 'ChangeRequest' | 'Release' | 'UVCS'
+ * @param {string} params.entityType - 'Project' | 'Version' | 'Bug' | 'ChangeRequest' | 'Release' | 'UVCS' | 'Traceability'
  * @param {string|ObjectId} [params.entityId] - Target entity ID
  * @param {string} params.description - Human-readable activity summary
  * @param {Object} [params.metadata] - Optional sanitized metadata payload

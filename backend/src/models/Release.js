@@ -54,6 +54,12 @@ const releaseSchema = new mongoose.Schema(
         ref: 'Bug'
       }
     ],
+    changeRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ChangeRequest'
+      }
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

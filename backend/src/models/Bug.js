@@ -58,6 +58,16 @@ const bugSchema = new mongoose.Schema(
       trim: true,
       maxlength: [1000, 'Resolution notes cannot exceed 1000 characters'],
       default: ''
+    },
+    changeRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'ChangeRequest',
+      default: null
+    },
+    version: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Version',
+      default: null
     }
   },
   {

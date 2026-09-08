@@ -375,6 +375,26 @@ export const auditService = {
   }
 };
 
+export const traceabilityService = {
+  getTraceability: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return await request(`/traceability${queryString}`, { method: 'GET' });
+  },
+
+  linkArtifacts: async (data) => {
+    return await request('/traceability/link', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+};
+
 export default {
   auth: authService,
   projects: projectService,
@@ -384,5 +404,6 @@ export default {
   releases: releaseService,
   reports: reportService,
   uvcs: uvcsService,
-  audit: auditService
+  audit: auditService,
+  traceability: traceabilityService
 };

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { projectService, versionService, bugService, changeRequestService, releaseService, auditService } from '../services/api';
+import { projectService, versionService, bugService, changeRequestService, releaseService, auditService, traceabilityService } from '../services/api';
 
 const roleLabels = {
   admin: 'Administrator',
@@ -95,6 +95,19 @@ const Dashboard = () => {
   const [recentActivities, setRecentActivities] = useState([]);
   const [primaryProject, setPrimaryProject] = useState(null);
 
+  // Traceability summary state (Phase 14)
+  const [traceabilitySummary, setTraceabilitySummary] = useState({
+    totalChangeRequests: 0,
+    linkedChangeRequests: 0,
+    totalBugs: 0,
+    linkedBugs: 0,
+    totalVersions: 0,
+    linkedVersions: 0,
+    totalReleases: 0,
+    linkedReleases: 0,
+    coveragePercentage: 0
+  });
+
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState('');
 
@@ -104,7 +117,7 @@ const Dashboard = () => {
         setIsLoadingStats(true);
         setStatsError('');
 
-        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes, auditRes] = await Promise.all([
+        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes, auditRes, traceRes] = await Promise.all([
           projectService.getProjectStats(),
           versionService.getVersionStats(),
           bugService.getBugStats(),
@@ -112,7 +125,8 @@ const Dashboard = () => {
           releaseService.getReleaseStats(),
           releaseService.getRecentReleases(),
           projectService.getProjects(),
-          auditService.getAuditLogs({ limit: 6 }).catch(() => ({ success: false, auditLogs: [] }))
+          auditService.getAuditLogs({ limit: 6 }).catch(() => ({ success: false, auditLogs: [] })),
+          traceabilityService.getTraceability().catch(() => ({ success: false }))
         ]);
 
         if (projRes.success && projRes.stats) {
@@ -141,6 +155,10 @@ const Dashboard = () => {
 
         if (auditRes.success && auditRes.auditLogs) {
           setRecentActivities(auditRes.auditLogs);
+        }
+
+        if (traceRes?.success && traceRes?.data?.summary) {
+          setTraceabilitySummary(traceRes.data.summary);
         }
 
         if (projsListRes.success && projsListRes.projects) {
@@ -515,6 +533,57 @@ const Dashboard = () => {
           )}
         </section>
 
+        {/* Phase 14: Traceability Coverage Widget */}
+        <section className="traceability-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3>Traceability Coverage</h3>
+              <p>End-to-end lifecycle mapping: Change Request &rarr; Bug &rarr; Version &rarr; UVCS Baseline &rarr; Release.</p>
+            </div>
+            <Link to="/traceability" className="btn btn-outline btn-sm" id="btn-view-traceability">
+              View Traceability &rarr;
+            </Link>
+          </div>
+
+          <div className="card" id="dashboard-traceability-card" style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.92rem', fontWeight: '600', color: 'var(--text-main)' }}>
+                Lifecycle Baseline Alignment
+              </span>
+              <span style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
+                {isLoadingStats ? '...' : `${traceabilitySummary.coveragePercentage}%`}
+              </span>
+            </div>
+
+            <div className="coverage-bar-track" style={{ background: '#e2e8f0', borderRadius: '8px', height: '10px', width: '100%', overflow: 'hidden', marginBottom: '1rem' }}>
+              <div
+                className="coverage-bar-fill"
+                style={{
+                  width: `${traceabilitySummary.coveragePercentage}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+                  transition: 'width 0.6s ease'
+                }}
+              />
+            </div>
+
+            <div className="traceability-stat-chips">
+              <span className="trace-chip" id="trace-chip-crs">
+                Linked CRs: <strong>{isLoadingStats ? '...' : `${traceabilitySummary.linkedChangeRequests} / ${traceabilitySummary.totalChangeRequests}`}</strong>
+              </span>
+              <span className="trace-chip" id="trace-chip-bugs">
+                Linked Bugs: <strong>{isLoadingStats ? '...' : `${traceabilitySummary.linkedBugs} / ${traceabilitySummary.totalBugs}`}</strong>
+              </span>
+              <span className="trace-chip" id="trace-chip-versions">
+                Linked Versions: <strong>{isLoadingStats ? '...' : `${traceabilitySummary.linkedVersions} / ${traceabilitySummary.totalVersions}`}</strong>
+              </span>
+              <span className="trace-chip" id="trace-chip-releases">
+                Linked Releases: <strong>{isLoadingStats ? '...' : `${traceabilitySummary.linkedReleases} / ${traceabilitySummary.totalReleases}`}</strong>
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* Phase 13: Recent SCM Activity Stream */}
         <section className="recent-activity-section" style={{ marginBottom: '2.5rem' }}>
           <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -763,6 +832,13 @@ const Dashboard = () => {
               <h4>Audit &amp; Activity System</h4>
               <p>Chronological SCM audit trails, actor attribution, and governance timelines.</p>
               <span className="badge-active">Phase 13 - Active</span>
+            </div>
+
+            <div className="module-card active-module" id="card-roadmap-phase14">
+              <div className="module-icon">🧭</div>
+              <h4>Traceability Matrix</h4>
+              <p>End-to-end change request, defect, version baseline, and release lifecycle mapping.</p>
+              <span className="badge-active">Phase 14 - Active</span>
             </div>
           </div>
         </section>
