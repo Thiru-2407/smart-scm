@@ -374,11 +374,27 @@ const Traceability = () => {
               {activeRow?.changeRequest ? (
                 <>
                   <div className="node-title">{activeRow.changeRequest.title}</div>
-                  <div className="node-meta">
+                  <div className="node-meta" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     <span className="node-key">{activeRow.changeRequest.key}</span>
                     <span className={`status-pill ${statusBadgeColors[activeRow.changeRequest.status] || 'status-pending'}`}>
                       {activeRow.changeRequest.status}
                     </span>
+                    <Link
+                      to={`/impact-analysis?changeRequest=${activeRow.changeRequest.id}`}
+                      className="btn-impact-link"
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '0.1rem 0.35rem',
+                        borderRadius: '4px',
+                        background: '#ede9fe',
+                        color: '#6d28d9',
+                        fontWeight: '600',
+                        textDecoration: 'none',
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      Impact &rarr;
+                    </Link>
                   </div>
                 </>
               ) : (
@@ -618,10 +634,30 @@ const Traceability = () => {
                                 <span className="matrix-code-badge">{row.changeRequest.key}</span>
                                 <strong className="matrix-title">{row.changeRequest.title}</strong>
                               </Link>
-                              <div style={{ marginTop: '0.25rem' }}>
+                              <div style={{ marginTop: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                                 <span className={`status-pill ${statusBadgeColors[row.changeRequest.status] || 'status-pending'}`}>
                                   {row.changeRequest.status}
                                 </span>
+                                <Link
+                                  to={`/impact-analysis?changeRequest=${row.changeRequest.id}`}
+                                  className="btn-impact-link"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Analyze SCM Change Impact"
+                                  style={{
+                                    fontSize: '0.72rem',
+                                    padding: '0.12rem 0.45rem',
+                                    borderRadius: '4px',
+                                    background: '#ede9fe',
+                                    color: '#6d28d9',
+                                    fontWeight: '600',
+                                    textDecoration: 'none',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.2rem'
+                                  }}
+                                >
+                                  ⚡ Impact &rarr;
+                                </Link>
                               </div>
                             </div>
                           ) : (

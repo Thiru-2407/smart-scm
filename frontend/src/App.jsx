@@ -14,6 +14,7 @@ import Reports from './pages/Reports';
 import UVCS from './pages/UVCS';
 import Activity from './pages/Activity';
 import Traceability from './pages/Traceability';
+import ImpactAnalysis from './pages/ImpactAnalysis';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/traceability" element={<Traceability />} />
+            <Route path="/impact-analysis" element={<ImpactAnalysis />} />
             <Route path="/uvcs" element={<UVCS />} />
           </Route>
 

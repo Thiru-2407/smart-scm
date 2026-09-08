@@ -395,6 +395,23 @@ export const traceabilityService = {
   }
 };
 
+export const impactService = {
+  getImpactAnalysis: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return await request(`/impact-analysis${queryString}`, { method: 'GET' });
+  },
+
+  getChangeRequestImpact: async (changeRequestId) => {
+    return await request(`/impact-analysis/change-request/${changeRequestId}`, { method: 'GET' });
+  }
+};
+
 export default {
   auth: authService,
   projects: projectService,
@@ -405,5 +422,6 @@ export default {
   reports: reportService,
   uvcs: uvcsService,
   audit: auditService,
-  traceability: traceabilityService
+  traceability: traceabilityService,
+  impact: impactService
 };

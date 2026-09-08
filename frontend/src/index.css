@@ -2989,3 +2989,97 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Phase 15: Change Impact Analysis Styling
+   ========================================================================== */
+
+.impact-badge-lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.impact-badge-low {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.impact-badge-medium {
+  background: #fefce8;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+.impact-badge-high {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fdba74;
+}
+
+.impact-badge-critical {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+.impact-counts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.impact-count-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.impact-count-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.impact-chain-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.impact-node-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.impact-node-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.chain-connector {
+  font-weight: 800;
+  user-select: none;
+}
+
+.btn-impact-link {
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.btn-impact-link:hover {
+  background: #ddd6fe !important;
+  transform: scale(1.02);
+}
+
+@media (max-width: 768px) {
+  .impact-counts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .impact-counts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

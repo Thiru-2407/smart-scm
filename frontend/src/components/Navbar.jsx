@@ -64,6 +64,13 @@ const Navbar = () => {
               Traceability
             </NavLink>
             <NavLink
+              to="/impact-analysis"
+              className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+              id="nav-link-impact"
+            >
+              Impact Analysis
+            </NavLink>
+            <NavLink
               to="/uvcs"
               className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
               id="nav-link-uvcs"

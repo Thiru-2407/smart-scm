@@ -584,6 +584,35 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {/* Phase 15: Change Impact Analysis Widget */}
+        <section className="impact-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3>Change Impact Analysis</h3>
+              <p>Analyze how configuration changes propagate through defects, versions, UVCS baselines, and releases.</p>
+            </div>
+            <Link to="/impact-analysis" className="btn btn-outline btn-sm" id="btn-analyze-impact">
+              Analyze Impact &rarr;
+            </Link>
+          </div>
+
+          <div className="card" id="dashboard-impact-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #8b5cf6' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div>
+                <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: '700', color: '#1e293b' }}>
+                  Configuration Propagation &amp; Risk Evaluation
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.4 }}>
+                  Determine downstream configuration items affected by proposed changes across bugs, target versions, UVCS baselines, and published releases with direct vs. derived relationship classification.
+                </p>
+              </div>
+              <Link to="/impact-analysis" className="btn btn-primary btn-sm" id="dashboard-btn-impact-cta">
+                Launch Impact Engine &rarr;
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Phase 13: Recent SCM Activity Stream */}
         <section className="recent-activity-section" style={{ marginBottom: '2.5rem' }}>
           <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -839,6 +868,13 @@ const Dashboard = () => {
               <h4>Traceability Matrix</h4>
               <p>End-to-end change request, defect, version baseline, and release lifecycle mapping.</p>
               <span className="badge-active">Phase 14 - Active</span>
+            </div>
+
+            <div className="module-card active-module" id="card-roadmap-phase15">
+              <div className="module-icon">⚡</div>
+              <h4>Change Impact Analysis</h4>
+              <p>Downstream defect, baseline, and release propagation evaluation with dynamic risk severity.</p>
+              <span className="badge-active">Phase 15 - Active</span>
             </div>
           </div>
         </section>
