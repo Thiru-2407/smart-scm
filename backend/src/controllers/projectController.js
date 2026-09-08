@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const auditService = require('../services/auditService');
 
 // Helper to check if current user is owner or admin
 const isAuthorizedToModify = (project, user) => {
@@ -65,6 +66,16 @@ const createProject = async (req, res) => {
     const populatedProject = await Project.findById(project._id)
       .populate('owner', 'name email role')
       .populate('members', 'name email role');
+
+    await auditService.logActivity({
+      project: project._id,
+      actor: req.user._id,
+      action: 'PROJECT_CREATED',
+      entityType: 'Project',
+      entityId: project._id,
+      description: `Project '${project.name}' (${project.key}) was created`,
+      metadata: { key: project.key, status: project.status }
+    });
 
     return res.status(201).json({
       success: true,
@@ -217,6 +228,16 @@ const updateProject = async (req, res) => {
     const updated = await Project.findById(project._id)
       .populate('owner', 'name email role')
       .populate('members', 'name email role');
+
+    await auditService.logActivity({
+      project: project._id,
+      actor: req.user._id,
+      action: 'PROJECT_UPDATED',
+      entityType: 'Project',
+      entityId: project._id,
+      description: `Project '${project.name}' details were updated`,
+      metadata: { key: project.key, status: project.status }
+    });
 
     return res.status(200).json({
       success: true,

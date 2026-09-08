@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const ChangeRequest = require('../models/ChangeRequest');
 const Project = require('../models/Project');
+const auditService = require('../services/auditService');
 
 const isOwnerOrAdmin = (project, user) => {
   if (!project || !user) return false;
@@ -54,6 +55,16 @@ const createChangeRequest = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'CHANGE_REQUEST_CREATED',
+      entityType: 'ChangeRequest',
+      entityId: cr._id,
+      description: `Change request '${cr.title}' was submitted (${cr.priority} priority)`,
+      metadata: { priority: cr.priority, status: cr.status }
+    });
 
     return res.status(201).json({
       success: true,
@@ -189,6 +200,16 @@ const updateChangeRequest = async (req, res) => {
       .populate('reviewedBy', 'name email role')
       .populate('project', 'name key owner');
 
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'CHANGE_REQUEST_STATUS_CHANGED',
+      entityType: 'ChangeRequest',
+      entityId: cr._id,
+      description: `Change request '${cr.title}' details were updated`,
+      metadata: { priority: cr.priority, status: cr.status }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Change request updated successfully',
@@ -261,6 +282,16 @@ const reviewChangeRequest = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'CHANGE_REQUEST_STATUS_CHANGED',
+      entityType: 'ChangeRequest',
+      entityId: cr._id,
+      description: `Change request '${cr.title}' status transitioned to '${status}'`,
+      metadata: { status: cr.status, implementationNotes: cr.implementationNotes || null }
+    });
 
     return res.status(200).json({
       success: true,

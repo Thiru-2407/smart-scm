@@ -50,6 +50,13 @@ const Navbar = () => {
               Reports
             </NavLink>
             <NavLink
+              to="/activity"
+              className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+              id="nav-link-activity"
+            >
+              Activity
+            </NavLink>
+            <NavLink
               to="/uvcs"
               className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
               id="nav-link-uvcs"

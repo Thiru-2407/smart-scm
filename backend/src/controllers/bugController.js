@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Bug = require('../models/Bug');
 const Project = require('../models/Project');
 const User = require('../models/User');
+const auditService = require('../services/auditService');
 
 const isOwnerOrAdmin = (project, user) => {
   if (!project || !user) return false;
@@ -77,6 +78,16 @@ const createBug = async (req, res) => {
       .populate('reportedBy', 'name email role')
       .populate('assignedTo', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'BUG_CREATED',
+      entityType: 'Bug',
+      entityId: bug._id,
+      description: `Bug '${bug.title}' was reported (${bug.severity} severity, ${bug.priority} priority)`,
+      metadata: { severity: bug.severity, priority: bug.priority, status: bug.status }
+    });
 
     return res.status(201).json({
       success: true,
@@ -242,6 +253,16 @@ const updateBug = async (req, res) => {
       .populate('assignedTo', 'name email role')
       .populate('project', 'name key owner');
 
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'BUG_UPDATED',
+      entityType: 'Bug',
+      entityId: bug._id,
+      description: `Bug '${bug.title}' was updated (status: ${bug.status})`,
+      metadata: { status: bug.status, severity: bug.severity, priority: bug.priority }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Bug updated successfully',
@@ -304,6 +325,18 @@ const assignBug = async (req, res) => {
       .populate('reportedBy', 'name email role')
       .populate('assignedTo', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'BUG_UPDATED',
+      entityType: 'Bug',
+      entityId: bug._id,
+      description: updated.assignedTo
+        ? `Bug '${bug.title}' was assigned to ${updated.assignedTo.name}`
+        : `Bug '${bug.title}' was unassigned`,
+      metadata: { assignedTo: updated.assignedTo?.name || null }
+    });
 
     return res.status(200).json({
       success: true,

@@ -12,6 +12,7 @@ import ChangeRequestDetails from './pages/ChangeRequestDetails';
 import ReleaseDetails from './pages/ReleaseDetails';
 import Reports from './pages/Reports';
 import UVCS from './pages/UVCS';
+import Activity from './pages/Activity';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/projects/:projectId/change-requests/:changeRequestId" element={<ChangeRequestDetails />} />
             <Route path="/projects/:projectId/releases/:releaseId" element={<ReleaseDetails />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/activity" element={<Activity />} />
             <Route path="/uvcs" element={<UVCS />} />
           </Route>
 

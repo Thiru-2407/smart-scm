@@ -351,6 +351,30 @@ export const uvcsService = {
   }
 };
 
+export const auditService = {
+  getAuditLogs: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return await request(`/audit${queryString}`, { method: 'GET' });
+  },
+
+  getProjectAuditLogs: async (projectId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return await request(`/projects/${projectId}/audit${queryString}`, { method: 'GET' });
+  }
+};
+
 export default {
   auth: authService,
   projects: projectService,
@@ -359,5 +383,6 @@ export default {
   changeRequests: changeRequestService,
   releases: releaseService,
   reports: reportService,
-  uvcs: uvcsService
+  uvcs: uvcsService,
+  audit: auditService
 };

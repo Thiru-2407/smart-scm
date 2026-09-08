@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { projectService, versionService, bugService, changeRequestService, releaseService } from '../services/api';
+import { projectService, versionService, bugService, changeRequestService, releaseService, auditService } from '../services/api';
 
 const roleLabels = {
   admin: 'Administrator',
@@ -18,6 +18,24 @@ const releaseStatusLabels = {
   approved: 'Approved',
   published: 'Published',
   withdrawn: 'Withdrawn'
+};
+
+const getActivityIcon = (action) => {
+  switch (action) {
+    case 'PROJECT_CREATED':
+    case 'PROJECT_UPDATED': return '📁';
+    case 'VERSION_CREATED':
+    case 'VERSION_UPDATED': return '🏷️';
+    case 'BUG_CREATED':
+    case 'BUG_UPDATED': return '🐛';
+    case 'CHANGE_REQUEST_CREATED':
+    case 'CHANGE_REQUEST_STATUS_CHANGED': return '📝';
+    case 'RELEASE_CREATED':
+    case 'RELEASE_APPROVED':
+    case 'RELEASE_PUBLISHED': return '🚀';
+    case 'UVCS_BASELINE_LINKED': return '🔄';
+    default: return '📌';
+  }
 };
 
 const Dashboard = () => {
@@ -73,6 +91,8 @@ const Dashboard = () => {
 
   // Recent releases list (Phase 8)
   const [recentReleases, setRecentReleases] = useState([]);
+  // Recent activities list (Phase 13)
+  const [recentActivities, setRecentActivities] = useState([]);
   const [primaryProject, setPrimaryProject] = useState(null);
 
   const [isLoadingStats, setIsLoadingStats] = useState(true);
@@ -84,14 +104,15 @@ const Dashboard = () => {
         setIsLoadingStats(true);
         setStatsError('');
 
-        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes] = await Promise.all([
+        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes, auditRes] = await Promise.all([
           projectService.getProjectStats(),
           versionService.getVersionStats(),
           bugService.getBugStats(),
           changeRequestService.getChangeRequestStats(),
           releaseService.getReleaseStats(),
           releaseService.getRecentReleases(),
-          projectService.getProjects()
+          projectService.getProjects(),
+          auditService.getAuditLogs({ limit: 6 }).catch(() => ({ success: false, auditLogs: [] }))
         ]);
 
         if (projRes.success && projRes.stats) {
@@ -116,6 +137,10 @@ const Dashboard = () => {
 
         if (recentRes.success && recentRes.releases) {
           setRecentReleases(recentRes.releases);
+        }
+
+        if (auditRes.success && auditRes.auditLogs) {
+          setRecentActivities(auditRes.auditLogs);
         }
 
         if (projsListRes.success && projsListRes.projects) {
@@ -490,6 +515,54 @@ const Dashboard = () => {
           )}
         </section>
 
+        {/* Phase 13: Recent SCM Activity Stream */}
+        <section className="recent-activity-section" style={{ marginBottom: '2.5rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h3>Recent SCM Activity</h3>
+              <p>Live chronological audit events recorded across projects in MongoDB.</p>
+            </div>
+            <Link to="/activity" className="btn btn-outline btn-sm" id="btn-view-all-activity">
+              View All Activity &rarr;
+            </Link>
+          </div>
+
+          {recentActivities.length === 0 ? (
+            <div className="empty-state-card" id="empty-recent-activity" style={{ padding: '1.5rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, color: 'var(--text-muted)' }}>
+                No recent activity recorded yet.
+              </p>
+            </div>
+          ) : (
+            <div className="card" id="recent-activity-card" style={{ padding: '0.75rem 1.25rem' }}>
+              <div className="dashboard-activity-list">
+                {recentActivities.map((act) => (
+                  <div key={act._id} className="dashboard-activity-item">
+                    <div className="dashboard-activity-icon">
+                      {getActivityIcon(act.action)}
+                    </div>
+                    <div className="dashboard-activity-content">
+                      <div className="dashboard-activity-desc">{act.description}</div>
+                      <div className="dashboard-activity-meta">
+                        <span className="dashboard-activity-actor">{act.actor?.name || 'User'}</span>
+                        <span className="meta-dot">•</span>
+                        {act.project && (
+                          <>
+                            <span className="dashboard-activity-project">{act.project.key}</span>
+                            <span className="meta-dot">•</span>
+                          </>
+                        )}
+                        <span className="dashboard-activity-time">{new Date(act.createdAt).toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <span className="dashboard-activity-badge">{act.entityType}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Phase 7: Live Bug Tracking Metrics */}
         <section className="stats-section">
           <div className="section-title-row">
@@ -683,6 +756,13 @@ const Dashboard = () => {
               <h4>Unity Version Control (SCM)</h4>
               <p>Traceable changeset mapping, branches, and rollback history.</p>
               <span className="badge-active">Phase 10 - Active</span>
+            </div>
+
+            <div className="module-card active-module">
+              <div className="module-icon">📜</div>
+              <h4>Audit &amp; Activity System</h4>
+              <p>Chronological SCM audit trails, actor attribution, and governance timelines.</p>
+              <span className="badge-active">Phase 13 - Active</span>
             </div>
           </div>
         </section>

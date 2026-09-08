@@ -11,6 +11,7 @@ const {
   removeProjectMember,
   getAvailableUsers
 } = require('../controllers/projectController');
+const { getProjectAuditLogs } = require('../controllers/auditController');
 const { protect } = require('../middleware/authMiddleware');
 
 // All routes require authentication
@@ -30,6 +31,9 @@ router.route('/:id')
   .get(getProjectById)
   .put(updateProject)
   .delete(deleteProject);
+
+// Project audit logs
+router.get('/:projectId/audit', getProjectAuditLogs);
 
 // Member management
 router.post('/:id/members', addProjectMember);

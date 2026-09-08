@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Version = require('../models/Version');
 const Project = require('../models/Project');
 const uvcsService = require('../services/uvcsService');
+const auditService = require('../services/auditService');
 
 // Helper to check if user is project owner or admin
 const isAuthorizedForProject = (project, user) => {
@@ -87,6 +88,16 @@ const createVersion = async (req, res) => {
     const populated = await Version.findById(version._id)
       .populate('createdBy', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'VERSION_CREATED',
+      entityType: 'Version',
+      entityId: version._id,
+      description: `Version v${version.versionNumber} ('${version.name}') was created`,
+      metadata: { versionNumber: version.versionNumber, name: version.name, status: version.status }
+    });
 
     return res.status(201).json({
       success: true,
@@ -279,6 +290,16 @@ const updateVersion = async (req, res) => {
       .populate('createdBy', 'name email role')
       .populate('project', 'name key owner');
 
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'VERSION_UPDATED',
+      entityType: 'Version',
+      entityId: version._id,
+      description: `Version v${version.versionNumber} was updated`,
+      metadata: { versionNumber: version.versionNumber, status: version.status }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Version updated successfully',
@@ -434,6 +455,23 @@ const linkUvcsBaseline = async (req, res) => {
     const updated = await Version.findById(version._id)
       .populate('createdBy', 'name email role')
       .populate('project', 'name key owner');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'UVCS_BASELINE_LINKED',
+      entityType: 'UVCS',
+      entityId: version._id,
+      description: version.uvcs?.changesetId !== null
+        ? `Linked UVCS changeset ${version.uvcs.changesetId} baseline to version v${version.versionNumber}`
+        : `Unlinked UVCS baseline from version v${version.versionNumber}`,
+      metadata: {
+        versionNumber: version.versionNumber,
+        changesetId: version.uvcs?.changesetId,
+        branch: version.uvcs?.branch,
+        repository: version.uvcs?.repository
+      }
+    });
 
     return res.status(200).json({
       success: true,

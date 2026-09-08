@@ -5,6 +5,7 @@ const Version = require('../models/Version');
 const Bug = require('../models/Bug');
 const ChangeRequest = require('../models/ChangeRequest');
 const uvcsService = require('../services/uvcsService');
+const auditService = require('../services/auditService');
 
 const isOwnerOrAdmin = (project, user) => {
   if (!project || !user) return false;
@@ -91,6 +92,16 @@ const createRelease = async (req, res) => {
       .populate('version')
       .populate('project', 'name key owner')
       .populate('createdBy', 'name email role');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'RELEASE_CREATED',
+      entityType: 'Release',
+      entityId: release._id,
+      description: `Release '${release.releaseName}' was created for version v${versionDoc.versionNumber}`,
+      metadata: { releaseName: release.releaseName, version: versionDoc.versionNumber, status: release.status }
+    });
 
     return res.status(201).json({
       success: true,
@@ -301,6 +312,16 @@ const updateRelease = async (req, res) => {
       .populate('approvedBy', 'name email role')
       .populate('fixedBugs');
 
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'RELEASE_UPDATED',
+      entityType: 'Release',
+      entityId: release._id,
+      description: `Release '${release.releaseName}' details were updated`,
+      metadata: { releaseName: release.releaseName, status: release.status }
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Release updated successfully',
@@ -359,6 +380,16 @@ const approveRelease = async (req, res) => {
       .populate('createdBy', 'name email role')
       .populate('approvedBy', 'name email role')
       .populate('fixedBugs');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'RELEASE_APPROVED',
+      entityType: 'Release',
+      entityId: release._id,
+      description: `Release '${release.releaseName}' was approved`,
+      metadata: { releaseName: release.releaseName, status: release.status }
+    });
 
     return res.status(200).json({
       success: true,
@@ -430,6 +461,16 @@ const publishRelease = async (req, res) => {
       .populate('createdBy', 'name email role')
       .populate('approvedBy', 'name email role')
       .populate('fixedBugs');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'RELEASE_PUBLISHED',
+      entityType: 'Release',
+      entityId: release._id,
+      description: `Release '${release.releaseName}' was published to production baseline`,
+      metadata: { releaseName: release.releaseName, status: release.status, releaseDate: release.releaseDate }
+    });
 
     return res.status(200).json({
       success: true,
@@ -740,6 +781,23 @@ const linkUvcsBaseline = async (req, res) => {
       .populate('version', 'versionNumber name status')
       .populate('createdBy', 'name email role')
       .populate('approvedBy', 'name email role');
+
+    await auditService.logActivity({
+      project: projectId,
+      actor: req.user._id,
+      action: 'UVCS_BASELINE_LINKED',
+      entityType: 'UVCS',
+      entityId: release._id,
+      description: release.uvcs?.changesetId !== null
+        ? `Linked UVCS changeset ${release.uvcs.changesetId} baseline to release '${release.releaseName}'`
+        : `Unlinked UVCS baseline from release '${release.releaseName}'`,
+      metadata: {
+        releaseName: release.releaseName,
+        changesetId: release.uvcs?.changesetId,
+        branch: release.uvcs?.branch,
+        repository: release.uvcs?.repository
+      }
+    });
 
     return res.status(200).json({
       success: true,
