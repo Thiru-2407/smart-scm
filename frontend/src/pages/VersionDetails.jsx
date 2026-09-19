@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { versionService, projectService, uvcsService } from '../services/api';
+import { versionService, projectService, uvcsService, baselineService } from '../services/api';
 
 const versionStatusLabels = {
   development: 'In Development',
@@ -27,6 +27,19 @@ const VersionDetails = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUvcsModal, setShowUvcsModal] = useState(false);
+  const [showChangesetModal, setShowChangesetModal] = useState(false);
+  const [inspectingChangeset, setInspectingChangeset] = useState(null);
+  const [isLoadingChangeset, setIsLoadingChangeset] = useState(false);
+  const [showBranchModal, setShowBranchModal] = useState(false);
+  const [showCreateBaselineModal, setShowCreateBaselineModal] = useState(false);
+  const [baselineFormData, setBaselineFormData] = useState({ name: '', description: '' });
+  const [isCreatingBaseline, setIsCreatingBaseline] = useState(false);
+  const [baselineModalError, setBaselineModalError] = useState('');
+
+  // Source Control Baseline state
+  const [baselineDoc, setBaselineDoc] = useState(null);
+  const [uvcsStatus, setUvcsStatus] = useState(null);
+  const [csDetails, setCsDetails] = useState(null);
 
   // UVCS Linking state
   const [uvcsChangesets, setUvcsChangesets] = useState([]);
@@ -52,12 +65,35 @@ const VersionDetails = () => {
       setIsLoading(true);
       setErrorMessage('');
 
-      const [verRes, projRes] = await Promise.all([
+      const [verRes, projRes, uvcsStatusRes, blRes] = await Promise.all([
         versionService.getVersionById(projectId, versionId),
-        projectService.getProjectById(projectId)
+        projectService.getProjectById(projectId),
+        uvcsService.getStatus().catch(() => ({ success: false })),
+        baselineService.getBaselines({ project: projectId, version: versionId }).catch(() => ({ success: false, baselines: [] }))
       ]);
 
+      if (uvcsStatusRes.success && uvcsStatusRes.data) {
+        setUvcsStatus(uvcsStatusRes.data);
+      }
+
+      if (blRes.success && blRes.baselines && blRes.baselines.length > 0) {
+        setBaselineDoc(blRes.baselines[0]);
+      } else {
+        setBaselineDoc(null);
+      }
+
       if (verRes.success && verRes.version) {
+        setVersion(verRes.version);
+        if (verRes.version.uvcs?.changesetId !== null && verRes.version.uvcs?.changesetId !== undefined) {
+          try {
+            const csRes = await uvcsService.getChangesetById(verRes.version.uvcs.changesetId, verRes.version.uvcs.repository || 'default@local');
+            if (csRes.success && csRes.changeset) {
+              setCsDetails(csRes.changeset);
+            }
+          } catch {
+            // Keep existing state
+          }
+        }
         setVersion(verRes.version);
         setEditFormData({
           versionNumber: verRes.version.versionNumber,
@@ -250,6 +286,94 @@ const VersionDetails = () => {
     }
   };
 
+  const handleViewChangeset = async (csId) => {
+    try {
+      setIsLoadingChangeset(true);
+      setShowChangesetModal(true);
+      setInspectingChangeset({ changesetId: csId, loading: true });
+
+      const repo = baselineDoc?.repository || version?.uvcs?.repository || 'default@local';
+      const res = await uvcsService.getChangesetById(csId, repo);
+      if (res.success && res.changeset) {
+        setInspectingChangeset(res.changeset);
+      } else {
+        setInspectingChangeset({
+          changesetId: csId,
+          repository: repo,
+          branch: version?.uvcs?.branch || '/main',
+          error: res.message || 'Extended UVCS log details unavailable'
+        });
+      }
+    } catch (err) {
+      setInspectingChangeset({
+        changesetId: csId,
+        error: err.message || 'Failed to communicate with UVCS service'
+      });
+    } finally {
+      setIsLoadingChangeset(false);
+    }
+  };
+
+  const handleOpenCreateBaselineModal = () => {
+    setBaselineModalError('');
+    setBaselineFormData({
+      name: `Baseline v${version?.versionNumber} Milestone`,
+      description: `Formal configuration baseline anchoring software version v${version?.versionNumber} to UVCS changeset cs:${version?.uvcs?.changesetId}.`
+    });
+    setShowCreateBaselineModal(true);
+  };
+
+  const handleCreateBaselineSubmit = async (e) => {
+    e.preventDefault();
+    setBaselineModalError('');
+
+    if (!baselineFormData.name.trim()) {
+      setBaselineModalError('Baseline name is required');
+      return;
+    }
+
+    try {
+      setIsCreatingBaseline(true);
+      const res = await baselineService.createBaseline(projectId, {
+        version: versionId,
+        name: baselineFormData.name.trim(),
+        description: baselineFormData.description.trim(),
+        changesetId: version?.uvcs?.changesetId,
+        branch: version?.uvcs?.branch || '/main',
+        repository: version?.uvcs?.repository || 'default@local',
+        status: 'active'
+      });
+
+      if (res.success) {
+        setShowCreateBaselineModal(false);
+        setSuccessMessage(`Configuration Baseline ${res.baseline.baselineId} created and locked to UVCS cs:${version?.uvcs?.changesetId}!`);
+        setTimeout(() => setSuccessMessage(''), 5000);
+        fetchVersionData();
+      }
+    } catch (err) {
+      setBaselineModalError(err.message || 'Failed to create baseline');
+    } finally {
+      setIsCreatingBaseline(false);
+    }
+  };
+
+  const handleFreezeBaselineFromVer = async (bl) => {
+    if (!window.confirm(`Are you sure you want to freeze configuration baseline ${bl.baselineId} ('${bl.name}')? Once frozen, this configuration baseline cannot be altered.`)) {
+      return;
+    }
+
+    try {
+      const res = await baselineService.freezeBaseline(bl._id);
+      if (res.success) {
+        setSuccessMessage(`Configuration baseline ${bl.baselineId} is now frozen!`);
+        setTimeout(() => setSuccessMessage(''), 4000);
+        fetchVersionData();
+      }
+    } catch (err) {
+      alert(`Failed to freeze baseline: ${err.message}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="dashboard-layout">
@@ -392,51 +516,153 @@ const VersionDetails = () => {
             </div>
           </div>
 
-          {/* Unity Version Control Baseline Card */}
-          <div className="card baseline-card" id="card-version-uvcs-baseline">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3>Unity VCS Baseline</h3>
-              {version.uvcs?.changesetId !== null && version.uvcs?.changesetId !== undefined ? (
-                <span className="status-pill status-published" id="badge-uvcs-linked">
-                  ● Linked (cs:{version.uvcs.changesetId})
+          {/* SOURCE CONTROL BASELINE Card */}
+          <div className="card baseline-card" id="card-version-uvcs-baseline" style={{ borderTop: '4px solid #4f46e5' }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.08em', color: '#4f46e5', textTransform: 'uppercase' }}>
+                  SOURCE CONTROL BASELINE
+                </div>
+                <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.25rem' }}>
+                  Unity Version Control Integration
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                  SOURCE: UNITY VERSION CONTROL
                 </span>
-              ) : (
-                <span className="status-pill status-deprecated" id="badge-uvcs-unlinked">
-                  ○ Not Linked
-                </span>
-              )}
+                {version.uvcs?.changesetId !== null && version.uvcs?.changesetId !== undefined ? (
+                  <span className={`status-pill ${baselineDoc?.status === 'frozen' ? 'status-success' : 'status-published'}`} id="badge-uvcs-linked">
+                    {baselineDoc?.status === 'frozen' ? '❄️ FROZEN' : (baselineDoc ? '● ACTIVE BASELINE' : `● Linked (cs:${version.uvcs.changesetId})`)}
+                  </span>
+                ) : (
+                  <span className="status-pill status-deprecated" id="badge-uvcs-unlinked">
+                    ○ Not Linked
+                  </span>
+                )}
+              </div>
             </div>
+
             <div className="card-body">
+              <div style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#475569' }}>
+                💡 <em>Unity Version Control manages source-code configuration and changesets. Smart SCM manages project, version, change, defect and release metadata.</em>
+              </div>
+
               {version.uvcs?.changesetId !== null && version.uvcs?.changesetId !== undefined ? (
                 <div className="baseline-content">
-                  <p className="baseline-intro" style={{ marginBottom: '1rem' }}>
-                    Software version <strong>v{version.versionNumber}</strong> is anchored to verified Unity Version Control baseline:
-                  </p>
-                  <div className="meta-list" style={{ marginBottom: '1rem' }}>
-                    <div className="meta-row">
-                      <span className="meta-label">Changeset:</span>
-                      <span className="meta-value" id="version-uvcs-changeset">
-                        <span className="status-pill status-in_progress" style={{ fontWeight: 600 }}>
-                          cs:{version.uvcs.changesetId}
-                        </span>
+                  <div className="meta-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Version:</span>
+                      <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>v{version.versionNumber}</strong>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.35rem' }}>({version.name})</span>
+                    </div>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Repository:</span>
+                      <code style={{ fontSize: '0.88rem', color: '#1e293b' }} id="version-uvcs-repo">
+                        {baselineDoc?.repository || version.uvcs?.repository || 'default@local'}
+                      </code>
+                    </div>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Branch:</span>
+                      <strong style={{ fontSize: '0.95rem', color: '#1e293b' }} id="version-uvcs-branch">
+                        {baselineDoc?.branch || version.uvcs?.branch || '/main'}
+                      </strong>
+                    </div>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Changeset:</span>
+                      <span className="status-pill status-in_progress" style={{ fontWeight: 700, fontSize: '0.9rem' }} id="version-uvcs-changeset">
+                        cs:{version.uvcs.changesetId}
                       </span>
                     </div>
-                    <div className="meta-row">
-                      <span className="meta-label">Branch:</span>
-                      <span className="meta-value" id="version-uvcs-branch">
-                        <strong>{version.uvcs.branch || '/main'}</strong>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Changeset Author:</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '500' }}>
+                        {baselineDoc?.changesetAuthor || csDetails?.owner || 'Local User'}
                       </span>
                     </div>
-                    <div className="meta-row">
-                      <span className="meta-label">Repository:</span>
-                      <span className="meta-value" id="version-uvcs-repo">
-                        <code>{version.uvcs.repository || 'default@local'}</code>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Changeset Date:</span>
+                      <span style={{ fontSize: '0.82rem' }}>
+                        {baselineDoc?.changesetDate || csDetails?.date || (baselineDoc ? new Date(baselineDoc.createdAt).toLocaleDateString() : 'Active')}
+                      </span>
+                    </div>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Workspace:</span>
+                      <code style={{ fontSize: '0.85rem' }}>
+                        {uvcsStatus?.workspace?.name || 'smart_scm_wk'}
+                      </code>
+                    </div>
+
+                    <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                      <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Controlled Changes:</span>
+                      <span style={{ fontSize: '0.88rem', fontWeight: '600', color: (uvcsStatus?.controlledChangesCount > 0 ? '#ea580c' : '#16a34a') }}>
+                        {uvcsStatus?.controlledChangesCount !== undefined ? uvcsStatus.controlledChangesCount : 0} {uvcsStatus?.controlledChangesCount === 0 ? '(Clean)' : 'pending'}
                       </span>
                     </div>
                   </div>
 
-                  {canManage && (
-                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  {baselineDoc && (
+                    <div style={{ padding: '0.75rem 1rem', background: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>Configuration Baseline {baselineDoc.baselineId}:</strong> {baselineDoc.name} &bull; <span style={{ textTransform: 'uppercase', fontSize: '0.78rem', fontWeight: '700' }}>Status: {baselineDoc.status}</span>
+                      </div>
+                      <Link to="/baselines" style={{ fontSize: '0.82rem', fontWeight: '600', textDecoration: 'none' }}>
+                        View in Baselines Registry &rarr;
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Actions row */}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleViewChangeset(version.uvcs.changesetId)}
+                      className="btn-secondary-small"
+                      id="btn-view-changeset"
+                    >
+                      🔍 View Changeset
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowBranchModal(true)}
+                      className="btn-secondary-small"
+                      id="btn-view-branch"
+                    >
+                      🌿 View Branch
+                    </button>
+
+                    {canManage && !baselineDoc && (
+                      <button
+                        type="button"
+                        onClick={handleOpenCreateBaselineModal}
+                        className="btn-primary-small"
+                        id="btn-create-baseline-from-ver"
+                        style={{ background: '#4f46e5' }}
+                      >
+                        🏷️ Create Baseline
+                      </button>
+                    )}
+
+                    {canManage && baselineDoc && baselineDoc.status !== 'frozen' && (
+                      <button
+                        type="button"
+                        onClick={() => handleFreezeBaselineFromVer(baselineDoc)}
+                        className="btn-primary-small"
+                        id="btn-freeze-baseline-from-ver"
+                        style={{ background: '#0284c7' }}
+                      >
+                        ❄️ Freeze Baseline
+                      </button>
+                    )}
+
+                    {canManage && (
                       <button
                         type="button"
                         onClick={handleOpenUvcsModal}
@@ -445,6 +671,9 @@ const VersionDetails = () => {
                       >
                         🔗 Change Baseline
                       </button>
+                    )}
+
+                    {canManage && (
                       <button
                         type="button"
                         onClick={handleUnlinkUvcs}
@@ -454,8 +683,8 @@ const VersionDetails = () => {
                       >
                         Unlink
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="baseline-content">
@@ -768,6 +997,213 @@ const VersionDetails = () => {
                     id="btn-submit-link-uvcs"
                   >
                     {isLinkingUvcs ? 'Linking...' : 'Save Baseline Link'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View UVCS Changeset Modal */}
+        {showChangesetModal && inspectingChangeset && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <h3>UVCS Changeset Inspector</h3>
+                <button
+                  onClick={() => setShowChangesetModal(false)}
+                  className="btn-modal-close"
+                  type="button"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ padding: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="status-pill status-in_progress" style={{ fontSize: '1rem', fontWeight: 700 }}>
+                    cs:{inspectingChangeset.changesetId}
+                  </span>
+                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                    SOURCE: UNITY VERSION CONTROL
+                  </span>
+                </div>
+
+                {isLoadingChangeset ? (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div className="spinner"></div>
+                    <p>Querying Unity Version Control metadata...</p>
+                  </div>
+                ) : (
+                  <div className="meta-list" style={{ fontSize: '0.9rem' }}>
+                    <div className="meta-row">
+                      <span className="meta-label">Branch:</span>
+                      <span className="meta-value"><strong>{inspectingChangeset.branch || version?.uvcs?.branch || '/main'}</strong></span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Author:</span>
+                      <span className="meta-value">{inspectingChangeset.owner || csDetails?.owner || 'Local User'}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Date:</span>
+                      <span className="meta-value">{inspectingChangeset.date || csDetails?.date || 'Initial Milestone'}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Repository:</span>
+                      <span className="meta-value"><code>{version?.uvcs?.repository || 'default@local'}</code></span>
+                    </div>
+                    {inspectingChangeset.guid && (
+                      <div className="meta-row">
+                        <span className="meta-label">GUID:</span>
+                        <span className="meta-value"><code style={{ fontSize: '0.75rem' }}>{inspectingChangeset.guid}</code></span>
+                      </div>
+                    )}
+                    <div className="meta-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.35rem', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
+                      <span className="meta-label">Commit Comment:</span>
+                      <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', width: '100%', fontSize: '0.85rem', border: '1px solid var(--border-color)', color: inspectingChangeset.comment ? '#1e293b' : '#64748b', fontStyle: inspectingChangeset.comment ? 'normal' : 'italic' }}>
+                        {inspectingChangeset.comment || 'Root repository commit / No comment recorded'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="modal-actions" style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowChangesetModal(false)}
+                    className="btn-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View UVCS Branch Modal */}
+        {showBranchModal && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <h3>UVCS Branch Configuration</h3>
+                <button
+                  onClick={() => setShowBranchModal(false)}
+                  className="btn-modal-close"
+                  type="button"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ padding: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>
+                    🌿 {version?.uvcs?.branch || '/main'}
+                  </strong>
+                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                    SOURCE: UNITY VERSION CONTROL
+                  </span>
+                </div>
+
+                <div className="meta-list" style={{ fontSize: '0.9rem' }}>
+                  <div className="meta-row">
+                    <span className="meta-label">Repository:</span>
+                    <span className="meta-value"><code>{version?.uvcs?.repository || 'default@local'}</code></span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-label">Head Changeset:</span>
+                    <span className="meta-value"><span className="status-pill status-in_progress">cs:{version?.uvcs?.changesetId !== undefined ? version?.uvcs?.changesetId : 0}</span></span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-label">Local Workspace:</span>
+                    <span className="meta-value"><code>{uvcsStatus?.workspace?.name || 'smart_scm_wk'}</code></span>
+                  </div>
+                  <div className="meta-row">
+                    <span className="meta-label">Branch Status:</span>
+                    <span className="meta-value"><span className="status-pill status-active">Active Source Branch</span></span>
+                  </div>
+                </div>
+
+                <div className="modal-actions" style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowBranchModal(false)}
+                    className="btn-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Baseline from Version Modal */}
+        {showCreateBaselineModal && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <div className="modal-header">
+                <h3>Create Configuration Baseline</h3>
+                <button
+                  onClick={() => setShowCreateBaselineModal(false)}
+                  className="btn-modal-close"
+                  type="button"
+                >
+                  &times;
+                </button>
+              </div>
+
+              {baselineModalError && (
+                <div className="alert alert-danger" style={{ margin: '1rem 1.5rem 0 1.5rem' }}>
+                  <span>⚠️ {baselineModalError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateBaselineSubmit} className="modal-form" style={{ padding: '1.5rem' }}>
+                <p style={{ margin: '0 0 1rem 0', fontSize: '0.88rem', color: '#475569' }}>
+                  Anchor software version <strong>v{version?.versionNumber}</strong> to a formal Configuration Baseline registered at UVCS changeset <strong>cs:{version?.uvcs?.changesetId}</strong>.
+                </p>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label htmlFor="ver-baseline-name">Baseline Name *</label>
+                  <input
+                    id="ver-baseline-name"
+                    type="text"
+                    className="form-input"
+                    value={baselineFormData.name}
+                    onChange={(e) => setBaselineFormData({ ...baselineFormData, name: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label htmlFor="ver-baseline-description">Description</label>
+                  <textarea
+                    id="ver-baseline-description"
+                    className="form-input"
+                    rows={2}
+                    value={baselineFormData.description}
+                    onChange={(e) => setBaselineFormData({ ...baselineFormData, description: e.target.value })}
+                  />
+                </div>
+
+                <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateBaselineModal(false)}
+                    className="btn-secondary"
+                    disabled={isCreatingBaseline}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-action-primary"
+                    disabled={isCreatingBaseline}
+                    id="btn-submit-create-ver-baseline"
+                  >
+                    {isCreatingBaseline ? 'Creating...' : 'Create & Anchor Baseline'}
                   </button>
                 </div>
               </form>

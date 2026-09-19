@@ -22,13 +22,29 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
+      required: function () {
+        return !this.googleId && this.authProvider !== 'google';
+      },
       minlength: [6, 'Password must be at least 6 characters']
     },
     role: {
       type: String,
       enum: ['admin', 'project_manager', 'developer', 'tester'],
       default: 'developer'
+    },
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local'
+    },
+    avatar: {
+      type: String,
+      default: null
     }
   },
   {
@@ -38,7 +54,7 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving
 userSchema.pre('save', async function () {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return;
   }
   const salt = await bcrypt.genSalt(10);
@@ -47,6 +63,7 @@ userSchema.pre('save', async function () {
 
 // Compare entered password with hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

@@ -244,64 +244,170 @@ const Projects = () => {
             </button>
           </div>
         ) : (
-          /* Projects Table / Grid */
-          <div className="table-responsive card">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Project Key</th>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Owner</th>
-                  <th>Team Members</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((proj) => (
-                  <tr key={proj._id} className="project-row" data-project-key={proj.key}>
-                    <td>
-                      <span className="project-key-tag">{proj.key}</span>
-                    </td>
-                    <td>
-                      <Link to={`/projects/${proj._id}`} className="project-title-link">
-                        {proj.name}
-                      </Link>
-                      {proj.description && (
-                        <p className="project-desc-excerpt">{proj.description}</p>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`status-pill status-${proj.status}`}>
-                        {statusLabels[proj.status] || proj.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="owner-name">{proj.owner?.name || 'Unknown'}</span>
-                    </td>
-                    <td>
-                      <span className="member-count-badge">
-                        {(proj.members?.length || 0) + 1} {((proj.members?.length || 0) + 1) === 1 ? 'member' : 'members'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="date-text">
-                        {new Date(proj.createdAt).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td>
-                      <Link
-                        to={`/projects/${proj._id}`}
-                        className="btn-table-action"
-                      >
-                        View Details &rarr;
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            {/* Primary Featured Project Showcase */}
+            {(() => {
+              const primaryProject = projects.find((p) => p.key === 'SMART-SCM') || projects[0];
+              const otherProjects = projects.filter((p) => p._id !== primaryProject._id);
+
+              return (
+                <div>
+                  <div
+                    className="card primary-project-showcase"
+                    style={{
+                      marginBottom: otherProjects.length > 0 ? '2rem' : '0',
+                      padding: '2rem',
+                      border: '1px solid #c7d2fe',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
+                      boxShadow: '0 4px 16px rgba(99, 102, 241, 0.08)',
+                      borderRadius: '12px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div style={{ flex: '1 1 500px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+                          <span className="project-key-tag" style={{ fontSize: '0.9rem', padding: '0.25rem 0.6rem', fontWeight: '700' }}>
+                            {primaryProject.key}
+                          </span>
+                          <span className={`status-pill status-${primaryProject.status}`} style={{ textTransform: 'capitalize', fontWeight: '600' }}>
+                            {statusLabels[primaryProject.status] || primaryProject.status}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: '700', padding: '0.2rem 0.55rem', background: '#e0e7ff', color: '#3730a3', borderRadius: '4px', letterSpacing: '0.04em' }}>
+                            PRIMARY CONFIGURATION PROJECT
+                          </span>
+                        </div>
+
+                        <h2 style={{ fontSize: '1.85rem', margin: '0 0 0.5rem 0', color: 'var(--text-color, #1e293b)', fontWeight: '700' }}>
+                          {primaryProject.name}
+                        </h2>
+
+                        <p style={{ color: 'var(--text-muted, #64748b)', margin: '0 0 1.25rem 0', maxWidth: '680px', fontSize: '1rem', lineHeight: '1.5' }}>
+                          {primaryProject.description || 'Smart Software Release & Version Tracking System for Configuration Management'}
+                        </p>
+                      </div>
+
+                      <div style={{ alignSelf: 'center' }}>
+                        <Link
+                          to={`/projects/${primaryProject._id}`}
+                          className="btn-action-primary"
+                          id="btn-open-project"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.8rem 1.6rem',
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            textDecoration: 'none',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)'
+                          }}
+                        >
+                          Open Project &rarr;
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '1.25rem',
+                        borderTop: '1px solid #e2e8f0',
+                        paddingTop: '1.25rem',
+                        marginTop: '1rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Owner</span>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '600', marginTop: '0.2rem' }}>{primaryProject.owner?.name || 'Project Lead'}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Configuration Standard</span>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '600', marginTop: '0.2rem', color: '#4338ca' }}>IEEE 828 / ISO 26262</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Unity Version Control</span>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '600', marginTop: '0.2rem' }}>default@local (/main)</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.72rem', color: '#64748b', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Team Access</span>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '600', marginTop: '0.2rem' }}>
+                          {(primaryProject.members?.length || 0) + 1} {((primaryProject.members?.length || 0) + 1) === 1 ? 'Member' : 'Members'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Secondary Portfolio Grid (if multiple projects exist) */}
+                  {otherProjects.length > 0 && (
+                    <div style={{ marginTop: '2rem' }}>
+                      <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem', color: 'var(--text-color, #1e293b)' }}>
+                        Additional Projects Portfolio ({otherProjects.length})
+                      </h3>
+                      <div className="table-responsive card">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Project Key</th>
+                              <th>Name</th>
+                              <th>Status</th>
+                              <th>Owner</th>
+                              <th>Team Members</th>
+                              <th>Created</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {otherProjects.map((proj) => (
+                              <tr key={proj._id} className="project-row" data-project-key={proj.key}>
+                                <td>
+                                  <span className="project-key-tag">{proj.key}</span>
+                                </td>
+                                <td>
+                                  <Link to={`/projects/${proj._id}`} className="project-title-link">
+                                    {proj.name}
+                                  </Link>
+                                  {proj.description && (
+                                    <p className="project-desc-excerpt">{proj.description}</p>
+                                  )}
+                                </td>
+                                <td>
+                                  <span className={`status-pill status-${proj.status}`}>
+                                    {statusLabels[proj.status] || proj.status}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="owner-name">{proj.owner?.name || 'Unknown'}</span>
+                                </td>
+                                <td>
+                                  <span className="member-count-badge">
+                                    {(proj.members?.length || 0) + 1} {((proj.members?.length || 0) + 1) === 1 ? 'member' : 'members'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className="date-text">
+                                    {new Date(proj.createdAt).toLocaleDateString()}
+                                  </span>
+                                </td>
+                                <td>
+                                  <Link
+                                    to={`/projects/${proj._id}`}
+                                    className="btn-table-action"
+                                  >
+                                    View Details &rarr;
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>

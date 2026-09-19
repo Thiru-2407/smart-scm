@@ -43,6 +43,13 @@ const Navbar = () => {
               Projects
             </NavLink>
             <NavLink
+              to="/baselines"
+              className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+              id="nav-link-baselines"
+            >
+              Baselines
+            </NavLink>
+            <NavLink
               to="/reports"
               className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
               id="nav-link-reports"

@@ -16,6 +16,7 @@ import Activity from './pages/Activity';
 import Traceability from './pages/Traceability';
 import ImpactAnalysis from './pages/ImpactAnalysis';
 import ReleaseReadiness from './pages/ReleaseReadiness';
+import Baselines from './pages/Baselines';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Projects />} />
+            <Route path="/baselines" element={<Baselines />} />
             <Route path="/projects/:id" element={<ProjectDetails />} />
             <Route path="/projects/:projectId/versions/:versionId" element={<VersionDetails />} />
             <Route path="/projects/:projectId/bugs/:bugId" element={<BugDetails />} />

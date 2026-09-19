@@ -24,7 +24,7 @@ const createChangeRequest = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    const { title, description, reason, priority } = req.body;
+    const { title, description, reason, priority, targetVersion, relatedBugs } = req.body;
 
     if (!title || !description || !reason) {
       return res.status(400).json({
@@ -41,7 +41,7 @@ const createChangeRequest = async (req, res) => {
       });
     }
 
-    const cr = await ChangeRequest.create({
+    const crData = {
       project: projectId,
       title: title.trim(),
       description: description.trim(),
@@ -49,11 +49,21 @@ const createChangeRequest = async (req, res) => {
       priority: priority || 'medium',
       status: 'submitted',
       requestedBy: req.user._id
-    });
+    };
+
+    if (targetVersion && mongoose.Types.ObjectId.isValid(targetVersion)) {
+      crData.targetVersion = targetVersion;
+    }
+    if (Array.isArray(relatedBugs)) {
+      crData.relatedBugs = relatedBugs;
+    }
+
+    const cr = await ChangeRequest.create(crData);
 
     const populated = await ChangeRequest.findById(cr._id)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
+      .populate('targetVersion', 'versionNumber name status uvcs')
       .populate('project', 'name key owner');
 
     await auditService.logActivity({
@@ -98,6 +108,7 @@ const getChangeRequests = async (req, res) => {
     const changeRequests = await ChangeRequest.find({ project: projectId })
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
+      .populate('targetVersion', 'versionNumber name status uvcs')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -127,6 +138,7 @@ const getChangeRequestById = async (req, res) => {
     const cr = await ChangeRequest.findOne({ _id: changeRequestId, project: projectId })
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
+      .populate('targetVersion', 'versionNumber name status uvcs')
       .populate('project', 'name key owner');
 
     if (!cr) {
@@ -176,7 +188,7 @@ const updateChangeRequest = async (req, res) => {
       });
     }
 
-    const { title, description, reason, priority } = req.body;
+    const { title, description, reason, priority, targetVersion, relatedBugs } = req.body;
 
     if (title) cr.title = title.trim();
     if (description) cr.description = description.trim();
@@ -193,11 +205,20 @@ const updateChangeRequest = async (req, res) => {
       cr.priority = priority;
     }
 
+    if (targetVersion !== undefined) {
+      cr.targetVersion = targetVersion && mongoose.Types.ObjectId.isValid(targetVersion) ? targetVersion : null;
+    }
+
+    if (Array.isArray(relatedBugs)) {
+      cr.relatedBugs = relatedBugs;
+    }
+
     await cr.save();
 
     const updated = await ChangeRequest.findById(cr._id)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email role')
+      .populate('targetVersion', 'versionNumber name status uvcs')
       .populate('project', 'name key owner');
 
     await auditService.logActivity({

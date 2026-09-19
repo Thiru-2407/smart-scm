@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { projectService, versionService, bugService, changeRequestService, releaseService, auditService, traceabilityService } from '../services/api';
+import { projectService, versionService, bugService, changeRequestService, releaseService, auditService, traceabilityService, uvcsService } from '../services/api';
 
 const roleLabels = {
   admin: 'Administrator',
@@ -34,6 +34,10 @@ const getActivityIcon = (action) => {
     case 'RELEASE_APPROVED':
     case 'RELEASE_PUBLISHED': return '🚀';
     case 'UVCS_BASELINE_LINKED': return '🔄';
+    case 'BASELINE_CREATED': return '🛡️';
+    case 'BASELINE_FROZEN': return '❄️';
+    case 'BASELINE_UPDATED':
+    case 'BASELINE_DELETED': return '🛡️';
     default: return '📌';
   }
 };
@@ -108,6 +112,10 @@ const Dashboard = () => {
     coveragePercentage: 0
   });
 
+  // UVCS Source Control state
+  const [uvcsData, setUvcsData] = useState(null);
+  const [uvcsWkChanges, setUvcsWkChanges] = useState(null);
+
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState('');
 
@@ -117,7 +125,7 @@ const Dashboard = () => {
         setIsLoadingStats(true);
         setStatsError('');
 
-        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes, auditRes, traceRes] = await Promise.all([
+        const [projRes, verRes, bugRes, crRes, relRes, recentRes, projsListRes, auditRes, traceRes, uvcsRes, uvcsWkRes] = await Promise.all([
           projectService.getProjectStats(),
           versionService.getVersionStats(),
           bugService.getBugStats(),
@@ -126,7 +134,9 @@ const Dashboard = () => {
           releaseService.getRecentReleases(),
           projectService.getProjects(),
           auditService.getAuditLogs({ limit: 6 }).catch(() => ({ success: false, auditLogs: [] })),
-          traceabilityService.getTraceability().catch(() => ({ success: false }))
+          traceabilityService.getTraceability().catch(() => ({ success: false })),
+          uvcsService.getStatus().catch(() => ({ success: false })),
+          uvcsService.getWorkspaceChanges().catch(() => ({ success: false }))
         ]);
 
         if (projRes.success && projRes.stats) {
@@ -159,6 +169,14 @@ const Dashboard = () => {
 
         if (traceRes?.success && traceRes?.data?.summary) {
           setTraceabilitySummary(traceRes.data.summary);
+        }
+
+        if (uvcsRes?.success && uvcsRes?.data) {
+          setUvcsData(uvcsRes.data);
+        }
+
+        if (uvcsWkRes?.success) {
+          setUvcsWkChanges(uvcsWkRes);
         }
 
         if (projsListRes.success && projsListRes.projects) {
@@ -531,6 +549,70 @@ const Dashboard = () => {
               </table>
             </div>
           )}
+        </section>
+
+        {/* Source Control & Configuration Baselines Widget */}
+        <section className="uvcs-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                  SOURCE: UNITY VERSION CONTROL & SMART SCM
+                </span>
+              </div>
+              <h3 style={{ margin: 0 }}>Source Control &amp; Configuration Baselines</h3>
+              <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                Unity Version Control engine integration, repository workspace, and active baseline anchors.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <Link to="/baselines" className="btn btn-outline btn-sm" id="dashboard-btn-baselines">
+                Baselines &rarr;
+              </Link>
+              <Link to="/uvcs" className="btn btn-primary btn-sm" id="dashboard-btn-uvcs">
+                Open Version Control &rarr;
+              </Link>
+            </div>
+          </div>
+
+          <div className="card" id="dashboard-uvcs-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #4f46e5' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'center' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>CLI Connection</span>
+                <span className={`status-pill ${uvcsData?.connected ? 'status-published' : 'status-deprecated'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
+                  {uvcsData?.connected ? '🟢 UVCS Connected' : '○ Offline / Cloud Mode'}
+                </span>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Repository Specification</span>
+                <code style={{ fontSize: '0.9rem', color: '#1e293b' }}>
+                  {uvcsData?.repository?.spec || 'default@local'}
+                </code>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Current Branch</span>
+                <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>
+                  {uvcsData?.branch || '/main'}
+                </strong>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Head Changeset</span>
+                <span className="status-pill status-in_progress" style={{ fontWeight: 700 }}>
+                  cs:{uvcsData?.headChangeset?.changesetId !== undefined ? uvcsData.headChangeset.changesetId : 0}
+                </span>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Controlled Workspace</span>
+                <span style={{ fontSize: '0.88rem', color: '#1e293b' }}>
+                  <code>{uvcsData?.workspace?.name || 'smart_scm_wk'}</code> ({uvcsWkChanges?.count || 0} pending)
+                </span>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Phase 14: Traceability Coverage Widget */}

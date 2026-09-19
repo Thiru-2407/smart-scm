@@ -4,6 +4,7 @@ const Project = require('../models/Project');
 const Version = require('../models/Version');
 const Bug = require('../models/Bug');
 const ChangeRequest = require('../models/ChangeRequest');
+const Baseline = require('../models/Baseline');
 const uvcsService = require('../services/uvcsService');
 const auditService = require('../services/auditService');
 
@@ -164,7 +165,11 @@ const getReleaseById = async (req, res) => {
 
     const release = await Release.findOne({ _id: releaseId, project: projectId })
       .populate('project', 'name key owner')
-      .populate('version')
+      .populate({
+        path: 'version',
+        populate: { path: 'baseline' }
+      })
+      .populate('baseline')
       .populate('createdBy', 'name email role')
       .populate('approvedBy', 'name email role')
       .populate({
@@ -757,6 +762,7 @@ const linkUvcsBaseline = async (req, res) => {
 
     if (changesetId === null || changesetId === undefined || changesetId === '') {
       release.uvcs = { changesetId: null, branch: null, repository: null };
+      release.baseline = null;
     } else {
       const repoSpec = repository || 'default@local';
       const validation = await uvcsService.validateChangeset(changesetId, repoSpec);
@@ -772,13 +778,29 @@ const linkUvcsBaseline = async (req, res) => {
         branch: branch || validation.changeset.branch,
         repository: repoSpec
       };
+
+      const matchingBaseline = await Baseline.findOne({
+        project: projectId,
+        changesetId: validation.changeset.changesetId
+      });
+      if (matchingBaseline) {
+        release.baseline = matchingBaseline._id;
+        if (!matchingBaseline.release) {
+          matchingBaseline.release = release._id;
+          await matchingBaseline.save();
+        }
+      }
     }
 
     await release.save();
 
     const updated = await Release.findById(release._id)
       .populate('project', 'name key')
-      .populate('version', 'versionNumber name status')
+      .populate({
+        path: 'version',
+        populate: { path: 'baseline' }
+      })
+      .populate('baseline')
       .populate('createdBy', 'name email role')
       .populate('approvedBy', 'name email role');
 

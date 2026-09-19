@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { changeRequestService, projectService } from '../services/api';
+import { changeRequestService, projectService, impactService } from '../services/api';
 
 const priorityLabels = {
   critical: 'Critical',
@@ -61,6 +61,10 @@ const ChangeRequestDetails = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Change Impact Analysis state
+  const [impactData, setImpactData] = useState(null);
+  const [isLoadingImpact, setIsLoadingImpact] = useState(false);
+
   const fetchChangeRequestDetails = async () => {
     try {
       setIsLoading(true);
@@ -85,6 +89,19 @@ const ChangeRequestDetails = () => {
 
       if (projRes.success && projRes.project) {
         setProject(projRes.project);
+      }
+
+      // Load Impact Analysis
+      try {
+        setIsLoadingImpact(true);
+        const impactRes = await impactService.getChangeRequestImpact(changeRequestId);
+        if (impactRes.success && impactRes.data) {
+          setImpactData(impactRes.data);
+        }
+      } catch (iErr) {
+        console.error('Failed to load CR impact analysis:', iErr);
+      } finally {
+        setIsLoadingImpact(false);
       }
     } catch (error) {
       setErrorMessage(error.message || 'Failed to load change request details');
@@ -399,50 +416,203 @@ const ChangeRequestDetails = () => {
           </div>
         </div>
 
-        {/* Configuration Management Traceability Section */}
-        <div className="card traceability-card" style={{ marginTop: '1.5rem' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Change Impact Analysis Section */}
+        <div className="card" id="card-cr-impact-analysis" style={{ marginTop: '1.5rem', borderTop: '4px solid #f59e0b' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3 style={{ margin: 0 }}>Configuration Management Traceability</h3>
+              <div style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.08em', color: '#d97706', textTransform: 'uppercase' }}>
+                SCM CHANGE IMPACT ANALYSIS & BLAST RADIUS
+              </div>
+              <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.25rem' }}>
+                Change Impact Assessment
+              </h3>
               <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Baseline linkages between this change request, release milestones, and Unity Version Control.
+                Evaluates upstream configuration baselines, software versions, correlated defects, and downstream release deliverables.
               </p>
             </div>
-            <span className="badge-upcoming">SCM Traceability</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontWeight: '700' }}>
+                SOURCE: SMART SCM IMPACT ENGINE
+              </span>
+              {impactData && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span
+                    className="status-pill"
+                    style={{
+                      fontWeight: 700,
+                      background: impactData.impactLevel === 'CRITICAL' ? '#fee2e2' : impactData.impactLevel === 'HIGH' ? '#ffedd5' : impactData.impactLevel === 'MEDIUM' ? '#fef9c3' : '#dcfce7',
+                      color: impactData.impactLevel === 'CRITICAL' ? '#991b1b' : impactData.impactLevel === 'HIGH' ? '#9a3412' : impactData.impactLevel === 'MEDIUM' ? '#854d0e' : '#166534'
+                    }}
+                  >
+                    {impactData.impactLevel} IMPACT ({impactData.impactScore}/100)
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
+
           <div className="card-body">
-            <div className="traceability-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-              <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
-                  Project Scope
-                </span>
-                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{project?.name}</strong>
-                <span className="project-key-tag" style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}>{project?.key}</span>
-              </div>
+            {/* Visual SCM Flow */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+              <span style={{ fontWeight: 700, color: '#334155' }}>Impact Flow:</span>
+              <span className="badge-tag" style={{ background: '#3b82f6', color: '#fff' }}>
+                CR: {changeRequest.title.slice(0, 24)}...
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: '#ec4899', color: '#fff' }}>
+                Bugs ({impactData?.affectedScope?.bugs?.length || 0})
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: '#10b981', color: '#fff' }}>
+                Versions ({impactData?.affectedScope?.versions?.length || 0})
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: '#6366f1', color: '#fff' }}>
+                Baselines ({impactData?.affectedScope?.baselines?.length || 0})
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: '#0f172a', color: '#fff' }}>
+                Releases ({impactData?.affectedScope?.releases?.length || 0})
+              </span>
+            </div>
 
-              <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
-                  Target Software Version
-                </span>
-                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                  Not linked yet
-                </span>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  Version milestone assignment will be linked in upcoming release planning module.
-                </p>
+            {isLoadingImpact ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <div className="spinner"></div>
+                <p>Computing change impact blast radius...</p>
               </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+                {/* 1. Affected Versions */}
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📦 Affected Versions</span>
+                    <span className="status-pill status-in_progress" style={{ fontSize: '0.75rem' }}>
+                      {impactData?.affectedScope?.versions?.length || 0}
+                    </span>
+                  </div>
+                  {impactData?.affectedScope?.versions && impactData.affectedScope.versions.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                      {impactData.affectedScope.versions.map((v) => (
+                        <li key={v.id} style={{ marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Link to={`/projects/${projectId}/versions/${v.id}`} style={{ fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}>
+                            v{v.versionNumber} &mdash; {v.name}
+                          </Link>
+                          <span className={`status-pill status-${v.status}`} style={{ fontSize: '0.7rem' }}>
+                            {v.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
+                      No software version directly linked to this change request yet.
+                    </p>
+                  )}
+                </div>
 
-              <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
-                  Unity Version Control Branch
-                </span>
-                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                  Not linked yet
-                </span>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  Unity Version Control feature branches and merge records are tracked separately.
-                </p>
+                {/* 2. Configuration Baselines & UVCS */}
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>🛡️ Configuration Baselines</span>
+                    <span className="status-pill status-in_progress" style={{ fontSize: '0.75rem' }}>
+                      {impactData?.affectedScope?.baselines?.length || 0}
+                    </span>
+                  </div>
+                  {impactData?.affectedScope?.baselines && impactData.affectedScope.baselines.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                      {impactData.affectedScope.baselines.map((b, idx) => (
+                        <li key={idx} style={{ marginBottom: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <strong style={{ color: '#4338ca' }}>{b.baselineId || `BL-${b.changesetId}`}</strong>
+                            <span className="status-pill status-in_progress" style={{ fontSize: '0.7rem' }}>
+                              cs:{b.changesetId}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>on {b.branch || '/main'}</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
+                      No configuration baselines directly anchored.
+                    </p>
+                  )}
+                </div>
+
+                {/* 3. Correlated Defects */}
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>🐛 Correlated Defects</span>
+                    <span className="status-pill status-in_progress" style={{ fontSize: '0.75rem' }}>
+                      {impactData?.affectedScope?.bugs?.length || 0}
+                    </span>
+                  </div>
+                  {impactData?.affectedScope?.bugs && impactData.affectedScope.bugs.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                      {impactData.affectedScope.bugs.map((b) => (
+                        <li key={b.id} style={{ marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 500, color: '#1e293b' }}>{b.title}</span>
+                          <span className={`severity-badge severity-${b.severity}`} style={{ fontSize: '0.7rem' }}>
+                            {b.severity}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
+                      Zero defect correlation for this change proposal.
+                    </p>
+                  )}
+                </div>
+
+                {/* 4. Affected Releases */}
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>🚀 Downstream Releases</span>
+                    <span className="status-pill status-in_progress" style={{ fontSize: '0.75rem' }}>
+                      {impactData?.affectedScope?.releases?.length || 0}
+                    </span>
+                  </div>
+                  {impactData?.affectedScope?.releases && impactData.affectedScope.releases.length > 0 ? (
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                      {impactData.affectedScope.releases.map((r) => (
+                        <li key={r.id} style={{ marginBottom: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Link to={`/projects/${projectId}/releases/${r.id}`} style={{ fontWeight: 600, color: '#2563eb', textDecoration: 'none' }}>
+                            {r.releaseName}
+                          </Link>
+                          <span className={`status-pill status-${r.status}`} style={{ fontSize: '0.7rem' }}>
+                            {r.status}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
+                      No release milestones impacted yet.
+                    </p>
+                  )}
+                </div>
               </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', flexWrap: 'wrap' }}>
+              <Link
+                to={`/impact-analysis?project=${projectId}&changeRequest=${changeRequestId}`}
+                className="btn-action-primary-small"
+                id="btn-open-full-impact-matrix"
+                style={{ textDecoration: 'none' }}
+              >
+                📊 Open Full Change Impact Matrix &rarr;
+              </Link>
+              <Link
+                to={`/traceability?project=${projectId}`}
+                className="btn-secondary-small"
+                id="btn-open-traceability-from-cr"
+                style={{ textDecoration: 'none' }}
+              >
+                🔗 Open SCM Traceability Matrix
+              </Link>
             </div>
           </div>
         </div>

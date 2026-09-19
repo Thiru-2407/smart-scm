@@ -1,20 +1,35 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'developer',
     password: '',
     confirmPassword: ''
   });
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
+
+  const getFriendlyErrorMessage = (error) => {
+    if (!error) return '';
+    const msg = typeof error === 'string' ? error : error.message || '';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Unable to connect')) {
+      return 'Backend unavailable. Please ensure the server is running.';
+    }
+    if (msg.toLowerCase().includes('google authentication is not configured')) {
+      return 'Google authentication is not configured. Please set GOOGLE_CLIENT_ID on the server or VITE_GOOGLE_CLIENT_ID in the client.';
+    }
+    if (msg.toLowerCase().includes('google') && msg.toLowerCase().includes('failed')) {
+      return 'Google sign-in failed. Please try again.';
+    }
+    return msg || 'Registration failed. Please try again.';
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,7 +43,7 @@ const Register = () => {
     e.preventDefault();
     setErrorMessage('');
 
-    const { name, email, role, password, confirmPassword } = formData;
+    const { name, email, password, confirmPassword } = formData;
 
     // Validation
     if (!name.trim()) {
@@ -59,10 +74,23 @@ const Register = () => {
 
     try {
       setIsSubmitting(true);
-      await register(name.trim(), email.trim(), password, role);
+      await register(name.trim(), email.trim(), password);
       navigate('/dashboard', { replace: true });
     } catch (error) {
-      setErrorMessage(error.message || 'Registration failed. Please try again.');
+      setErrorMessage(getFriendlyErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credential) => {
+    setErrorMessage('');
+    try {
+      setIsSubmitting(true);
+      await googleLogin(credential);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      setErrorMessage(getFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -114,23 +142,6 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="reg-role">System Role</label>
-            <select
-              id="reg-role"
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              disabled={isSubmitting}
-            >
-              <option value="developer">Developer</option>
-              <option value="project_manager">Project Manager</option>
-              <option value="tester">QA / Tester</option>
-              <option value="admin">Administrator</option>
-            </select>
-            <span className="form-hint">Defines your access permissions across releases and change requests.</span>
-          </div>
-
-          <div className="form-group">
             <label htmlFor="reg-password">Password</label>
             <input
               id="reg-password"
@@ -160,6 +171,7 @@ const Register = () => {
 
           <button
             type="submit"
+            id="btn-register-submit"
             className="btn-primary"
             disabled={isSubmitting}
           >
@@ -172,6 +184,17 @@ const Register = () => {
             )}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>OR</span>
+        </div>
+
+        <GoogleSignInButton
+          onGoogleSuccess={handleGoogleSuccess}
+          onError={(msg) => setErrorMessage(getFriendlyErrorMessage(msg))}
+          disabled={isSubmitting}
+          text="Continue with Google"
+        />
 
         <div className="auth-footer">
           <p>

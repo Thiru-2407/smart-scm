@@ -55,4 +55,8 @@ router.use('/:projectId/change-requests', changeRequestRoutes);
 const releaseRoutes = require('./releaseRoutes');
 router.use('/:projectId/releases', releaseRoutes);
 
+// Forward to nested baseline routes
+const baselineRoutes = require('./baselineRoutes');
+router.use('/:projectId/baselines', baselineRoutes);
+
 module.exports = router;

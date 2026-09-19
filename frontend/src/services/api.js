@@ -57,15 +57,28 @@ export const authService = {
     });
   },
 
-  register: async (name, email, password, role) => {
+  register: async (name, email, password) => {
     return await request('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ name, email, password, role })
+      body: JSON.stringify({ name, email, password })
     });
   },
 
   getCurrentUser: async () => {
     return await request('/auth/me', {
+      method: 'GET'
+    });
+  },
+
+  googleLogin: async (credential) => {
+    return await request('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ credential })
+    });
+  },
+
+  getAuthConfig: async () => {
+    return await request('/auth/config', {
       method: 'GET'
     });
   }
@@ -429,6 +442,57 @@ export const readinessService = {
   }
 };
 
+export const baselineService = {
+  getBaselines: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    return await request(`/baselines${queryString}`, { method: 'GET' });
+  },
+
+  getProjectBaselines: async (projectId) => {
+    return await request(`/projects/${projectId}/baselines`, { method: 'GET' });
+  },
+
+  getBaselineById: async (id) => {
+    return await request(`/baselines/${id}`, { method: 'GET' });
+  },
+
+  createBaseline: async (projectId, baselineData) => {
+    return await request(`/projects/${projectId}/baselines`, {
+      method: 'POST',
+      body: JSON.stringify(baselineData)
+    });
+  },
+
+  freezeBaseline: async (id) => {
+    return await request(`/baselines/${id}/freeze`, {
+      method: 'PUT'
+    });
+  },
+
+  updateBaseline: async (id, baselineData) => {
+    return await request(`/baselines/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(baselineData)
+    });
+  },
+
+  deleteBaseline: async (id) => {
+    return await request(`/baselines/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  getStats: async () => {
+    return await request('/baselines/stats/summary', { method: 'GET' });
+  }
+};
+
 export default {
   auth: authService,
   projects: projectService,
@@ -441,5 +505,6 @@ export default {
   audit: auditService,
   traceability: traceabilityService,
   impact: impactService,
-  readiness: readinessService
+  readiness: readinessService,
+  baselines: baselineService
 };

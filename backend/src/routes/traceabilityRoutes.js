@@ -10,6 +10,7 @@ const { protect } = require('../middleware/authMiddleware');
 router.use(protect);
 
 router.get('/', getTraceabilityData);
+router.get('/matrix', getTraceabilityData);
 router.post('/link', createTraceabilityLink);
 
 module.exports = router;

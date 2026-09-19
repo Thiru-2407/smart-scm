@@ -4,6 +4,7 @@ const ChangeRequest = require('../models/ChangeRequest');
 const Bug = require('../models/Bug');
 const Version = require('../models/Version');
 const Release = require('../models/Release');
+const Baseline = require('../models/Baseline');
 
 /**
  * Helper to compute impact metrics and structure for a single Change Request
@@ -83,20 +84,32 @@ const computeSingleCRImpact = async (cr, allProjectVersions = null, allProjectBu
   const affectedVersionIds = new Set(affectedVersions.map((v) => v._id.toString()));
 
   // 3. Identify UVCS Baselines (from affected versions or releases)
+  const formalBaselines = await Baseline.find({
+    version: { $in: Array.from(affectedVersionIds) }
+  }).lean();
+  const formalBaselineMap = new Map();
+  formalBaselines.forEach((fb) => formalBaselineMap.set(fb.version.toString(), fb));
+
   const baselines = [];
   const baselineKeys = new Set();
 
   affectedVersions.forEach((v) => {
-    if (v.uvcs && v.uvcs.changesetId !== null && v.uvcs.changesetId !== undefined) {
-      const bKey = `${v.uvcs.changesetId}-${v.uvcs.branch || '/main'}`;
+    const formal = formalBaselineMap.get(v._id.toString());
+    const csId = formal ? formal.changesetId : (v.uvcs && v.uvcs.changesetId !== null && v.uvcs.changesetId !== undefined ? v.uvcs.changesetId : null);
+    if (csId !== null && csId !== undefined) {
+      const branch = formal ? formal.branch : (v.uvcs?.branch || '/main');
+      const bKey = `${csId}-${branch}`;
       if (!baselineKeys.has(bKey)) {
         baselineKeys.add(bKey);
         baselines.push({
-          changesetId: v.uvcs.changesetId,
-          branch: v.uvcs.branch || '/main',
-          repository: v.uvcs.repository || 'default@local',
+          changesetId: csId,
+          branch,
+          repository: formal ? formal.repository : (v.uvcs?.repository || 'default@local'),
           versionNumber: v.versionNumber,
           versionId: v._id,
+          baselineId: formal ? formal.baselineId : null,
+          baselineName: formal ? formal.name : null,
+          status: formal ? formal.status : 'active',
           relationship: 'baseline',
           relationshipType: 'DIRECT',
           impact: 'Affected'
@@ -350,31 +363,7 @@ const computeSingleCRImpact = async (cr, allProjectVersions = null, allProjectBu
     });
   });
 
-  return {
-    summary: {
-      impactLevel,
-      impactedChangeRequests: 1,
-      impactedBugs: bugsCount,
-      impactedVersions: versionsCount,
-      impactedBaselines: baselinesCount,
-      impactedReleases: releasesCount,
-      explanation
-    },
-    changeRequest: {
-      id: cr._id,
-      key: crKey,
-      title: cr.title,
-      description: cr.description,
-      reason: cr.reason,
-      status: cr.status,
-      priority: cr.priority,
-      requestedBy: cr.requestedBy,
-      reviewedBy: cr.reviewedBy,
-      targetVersion: cr.targetVersion,
-      createdAt: cr.createdAt,
-      project: cr.project
-    },
-    impacts: {
+  const impactsData = {
       bugs: linkedBugs.map((b) => ({
         id: b._id,
         key: `BUG-${b._id.toString().slice(-6).toUpperCase()}`,
@@ -400,6 +389,10 @@ const computeSingleCRImpact = async (cr, allProjectVersions = null, allProjectBu
         branch: b.branch,
         repository: b.repository,
         versionNumber: b.versionNumber,
+        versionId: b.versionId,
+        baselineId: b.baselineId,
+        baselineName: b.baselineName,
+        status: b.status,
         relationship: 'baseline',
         relationshipType: 'DIRECT',
         impact: 'Affected'
@@ -415,10 +408,37 @@ const computeSingleCRImpact = async (cr, allProjectVersions = null, allProjectBu
         relationshipSource: r.relationshipSource,
         impact: 'Affected'
       }))
-    },
-    impactPath,
-    artifactTable
-  };
+    };
+
+    return {
+      summary: {
+        impactLevel,
+        impactedChangeRequests: 1,
+        impactedBugs: bugsCount,
+        impactedVersions: versionsCount,
+        impactedBaselines: baselinesCount,
+        impactedReleases: releasesCount,
+        explanation
+      },
+      changeRequest: {
+        id: cr._id,
+        key: crKey,
+        title: cr.title,
+        description: cr.description,
+        reason: cr.reason,
+        status: cr.status,
+        priority: cr.priority,
+        requestedBy: cr.requestedBy,
+        reviewedBy: cr.reviewedBy,
+        targetVersion: cr.targetVersion,
+        createdAt: cr.createdAt,
+        project: cr.project
+      },
+      impacts: impactsData,
+      affectedScope: impactsData,
+      impactPath,
+      artifactTable
+    };
 };
 
 /**

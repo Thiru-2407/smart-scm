@@ -66,6 +66,11 @@ const versionSchema = new mongoose.Schema(
         trim: true,
         default: null
       }
+    },
+    baseline: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Baseline',
+      default: null
     }
   },
   {

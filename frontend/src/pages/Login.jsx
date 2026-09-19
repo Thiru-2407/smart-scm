@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleSignInButton from '../components/GoogleSignInButton';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,8 +9,26 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
+
+  const getFriendlyErrorMessage = (error) => {
+    if (!error) return '';
+    const msg = typeof error === 'string' ? error : error.message || '';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('Unable to connect')) {
+      return 'Backend unavailable. Please ensure the server is running.';
+    }
+    if (msg.toLowerCase().includes('google authentication is not configured')) {
+      return 'Google authentication is not configured. Please set GOOGLE_CLIENT_ID on the server or VITE_GOOGLE_CLIENT_ID in the client.';
+    }
+    if (msg.toLowerCase().includes('google') && msg.toLowerCase().includes('failed')) {
+      return 'Google sign-in failed. Please try again.';
+    }
+    if (msg.toLowerCase().includes('invalid credential') || msg.toLowerCase().includes('password') || msg.toLowerCase().includes('email')) {
+      return 'Invalid credentials. Please check your email and password.';
+    }
+    return msg || 'Authentication failed. Please try again.';
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,7 +51,20 @@ const Login = () => {
       await login(email.trim(), password);
       navigate('/dashboard', { replace: true });
     } catch (error) {
-      setErrorMessage(error.message || 'Login failed. Please check your credentials.');
+      setErrorMessage(getFriendlyErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credential) => {
+    setErrorMessage('');
+    try {
+      setIsSubmitting(true);
+      await googleLogin(credential);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      setErrorMessage(getFriendlyErrorMessage(error));
     } finally {
       setIsSubmitting(false);
     }
@@ -43,8 +75,8 @@ const Login = () => {
       <div className="auth-card">
         <div className="auth-header">
           <div className="brand-badge">Smart SCM</div>
-          <h2>Sign In to Your Account</h2>
-          <p>Configuration Management & Release Governance System</p>
+          <h2>Smart SCM</h2>
+          <p>Software Configuration Management</p>
         </div>
 
         {errorMessage && (
@@ -56,7 +88,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label htmlFor="login-email">Email Address</label>
+            <label htmlFor="login-email">Email</label>
             <input
               id="login-email"
               type="email"
@@ -83,6 +115,7 @@ const Login = () => {
 
           <button
             type="submit"
+            id="btn-login-submit"
             className="btn-primary"
             disabled={isSubmitting}
           >
@@ -91,16 +124,27 @@ const Login = () => {
                 <span className="spinner-small"></span> Authenticating...
               </span>
             ) : (
-              'Sign In'
+              'Login'
             )}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>OR</span>
+        </div>
+
+        <GoogleSignInButton
+          onGoogleSuccess={handleGoogleSuccess}
+          onError={(msg) => setErrorMessage(getFriendlyErrorMessage(msg))}
+          disabled={isSubmitting}
+          text="Continue with Google"
+        />
 
         <div className="auth-footer">
           <p>
             Don't have an account?{' '}
             <Link to="/register" className="auth-link">
-              Create an account
+              Register
             </Link>
           </p>
         </div>

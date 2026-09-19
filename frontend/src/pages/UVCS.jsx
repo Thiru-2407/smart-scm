@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { uvcsService } from '../services/api';
+import { uvcsService, baselineService } from '../services/api';
 
 const UVCS = () => {
   const [status, setStatus] = useState(null);
   const [branches, setBranches] = useState([]);
   const [changesets, setChangesets] = useState([]);
   const [wkChanges, setWkChanges] = useState(null);
+  const [baselines, setBaselines] = useState([]);
   const [selectedChangeset, setSelectedChangeset] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -20,11 +22,12 @@ const UVCS = () => {
     setErrorMessage('');
 
     try {
-      const [statusRes, branchesRes, changesetsRes, wkChangesRes] = await Promise.all([
+      const [statusRes, branchesRes, changesetsRes, wkChangesRes, baselinesRes] = await Promise.all([
         uvcsService.getStatus(),
         uvcsService.getBranches(),
         uvcsService.getChangesets(),
-        uvcsService.getWorkspaceChanges()
+        uvcsService.getWorkspaceChanges(),
+        baselineService.getBaselines().catch(() => ({ success: false, baselines: [] }))
       ]);
 
       if (statusRes.success) {
@@ -43,6 +46,10 @@ const UVCS = () => {
 
       if (wkChangesRes.success) {
         setWkChanges(wkChangesRes);
+      }
+
+      if (baselinesRes.success) {
+        setBaselines(baselinesRes.baselines || []);
       }
     } catch (err) {
       setErrorMessage(err.message || 'Error communicating with UVCS service');
@@ -119,10 +126,15 @@ const UVCS = () => {
 
         {/* Environment Overview Grid */}
         <div className="uvcs-overview-grid">
-          {/* Connection Status Card */}
+          {/* Section A: Connection Status Card */}
           <div className="card uvcs-status-card" id="card-uvcs-status">
-            <div className="card-header">
-              <h3>CLI & Connection Status</h3>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700', display: 'inline-block', marginBottom: '0.2rem' }}>
+                  SOURCE: UNITY VERSION CONTROL &bull; SECTION A
+                </span>
+                <h3 style={{ margin: 0 }}>CLI & Connection Status</h3>
+              </div>
               <span className={`status-pill ${status?.connected ? 'status-published' : 'status-deprecated'}`}>
                 {status?.connected ? '● Connected' : '○ Offline'}
               </span>
@@ -161,8 +173,13 @@ const UVCS = () => {
 
           {/* Workspace & Repository Card */}
           <div className="card uvcs-repo-card" id="card-uvcs-repo">
-            <div className="card-header">
-              <h3>Workspace & Repository</h3>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700', display: 'inline-block', marginBottom: '0.2rem' }}>
+                  SOURCE: UNITY VERSION CONTROL
+                </span>
+                <h3 style={{ margin: 0 }}>Workspace & Repository</h3>
+              </div>
               <span className="status-pill status-active">
                 {status?.repository?.spec || 'default@local'}
               </span>
@@ -201,10 +218,15 @@ const UVCS = () => {
             </div>
           </div>
 
-          {/* Controlled Workspace Status Card */}
+          {/* Section E: Controlled Workspace Status Card */}
           <div className="card uvcs-wkstatus-card" id="card-uvcs-workspace">
-            <div className="card-header">
-              <h3>Pending Changes (Controlled)</h3>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.68rem', padding: '0.15rem 0.4rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700', display: 'inline-block', marginBottom: '0.2rem' }}>
+                  SOURCE: UNITY VERSION CONTROL &bull; SECTION E
+                </span>
+                <h3 style={{ margin: 0 }}>Pending Changes (Controlled)</h3>
+              </div>
               <span className={`status-pill ${wkChanges?.hasChanges ? 'status-testing' : 'status-completed'}`}>
                 {wkChanges?.count || 0} Controlled Changes
               </span>
@@ -236,12 +258,18 @@ const UVCS = () => {
           </div>
         </div>
 
-        {/* UVCS Branches Section */}
+        {/* Section B: UVCS Branches Section */}
         <section className="card uvcs-section" style={{ marginTop: '1.5rem' }} id="section-branches">
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h3>Repository Branches ({branches.length})</h3>
-              <p className="card-subtitle" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                  SOURCE: UNITY VERSION CONTROL
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>SECTION B</span>
+              </div>
+              <h3 style={{ margin: 0 }}>Repository Branches ({branches.length})</h3>
+              <p className="card-subtitle" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Active branches on <code>{status?.repository?.spec || 'default@local'}</code>
               </p>
             </div>
@@ -295,12 +323,18 @@ const UVCS = () => {
           </div>
         </section>
 
-        {/* UVCS Changesets History Section */}
+        {/* Section C: UVCS Changesets History Section */}
         <section className="card uvcs-section" style={{ marginTop: '1.5rem' }} id="section-changesets">
           <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div>
-              <h3>Changeset History ({changesets.length})</h3>
-              <p className="card-subtitle" style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                  SOURCE: UNITY VERSION CONTROL
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>SECTION C</span>
+              </div>
+              <h3 style={{ margin: 0 }}>Changeset History ({changesets.length})</h3>
+              <p className="card-subtitle" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                 Real commits and source baselines stored in Unity Version Control
               </p>
             </div>
@@ -381,6 +415,79 @@ const UVCS = () => {
           </div>
         </section>
 
+        {/* Section F: SCM Configuration Baselines Registry referencing UVCS */}
+        <section className="card uvcs-section" style={{ marginTop: '1.5rem', borderTop: '4px solid #4f46e5' }} id="section-baselines">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                  SOURCE: SMART SCM BASELINES
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>SECTION F</span>
+              </div>
+              <h3 style={{ margin: 0 }}>Configuration Baselines Registry ({baselines.length})</h3>
+              <p className="card-subtitle" style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                Smart SCM formal configuration baselines mapped directly to verified Unity Version Control changesets.
+              </p>
+            </div>
+            <Link to="/baselines" className="btn-secondary-small" style={{ textDecoration: 'none' }} id="btn-open-baselines-from-uvcs">
+              📋 Open Full Baselines Registry &rarr;
+            </Link>
+          </div>
+
+          <div className="card-body table-responsive">
+            <table className="data-table" id="uvcs-baselines-table">
+              <thead>
+                <tr>
+                  <th>Baseline ID</th>
+                  <th>Name</th>
+                  <th>Project / Version</th>
+                  <th>UVCS Changeset</th>
+                  <th>Branch</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baselines.length > 0 ? (
+                  baselines.map((bl) => (
+                    <tr key={bl._id}>
+                      <td>
+                        <strong style={{ color: '#4338ca' }}>{bl.baselineId}</strong>
+                      </td>
+                      <td>{bl.name}</td>
+                      <td>
+                        <strong>{bl.project?.name || bl.project?.key || 'Project'}</strong>
+                        {bl.version && <span style={{ marginLeft: '0.35rem', color: '#64748b' }}>v{bl.version.versionNumber}</span>}
+                      </td>
+                      <td>
+                        <span className="status-pill status-in_progress" style={{ fontWeight: 600 }}>
+                          cs:{bl.changesetId}
+                        </span>
+                      </td>
+                      <td>
+                        <code>{bl.branch}</code>
+                      </td>
+                      <td>
+                        <span className={`status-pill status-${bl.status === 'frozen' ? 'success' : bl.status === 'active' ? 'published' : 'draft'}`}>
+                          {bl.status === 'frozen' ? '❄️ Frozen' : bl.status}
+                        </span>
+                      </td>
+                      <td>{new Date(bl.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="text-center py-4 text-muted">
+                      No configuration baselines registered yet. Create a baseline from the <Link to="/baselines">Baselines Registry</Link> or Version Details.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {/* Traceability Baseline Guide */}
         <section className="card uvcs-section" style={{ marginTop: '1.5rem' }}>
           <div className="card-header">
@@ -395,14 +502,22 @@ const UVCS = () => {
           </div>
         </section>
 
-        {/* Changeset Details Modal */}
+        {/* Section D: Changeset Details Modal */}
         {selectedChangeset && (
           <div className="modal-overlay" id="changeset-modal">
             <div className="modal-card modal-large">
-              <div className="modal-header">
-                <h3>
-                  Changeset Details: cs:{selectedChangeset.changesetId} ({selectedChangeset.branch})
-                </h3>
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                      SOURCE: UNITY VERSION CONTROL
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>SECTION D</span>
+                  </div>
+                  <h3 style={{ margin: 0 }}>
+                    Changeset Details: cs:{selectedChangeset.changesetId} ({selectedChangeset.branch})
+                  </h3>
+                </div>
                 <button
                   onClick={() => setSelectedChangeset(null)}
                   className="btn-modal-close"

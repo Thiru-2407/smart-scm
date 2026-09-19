@@ -50,12 +50,14 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user in database
+    // Security: Public registrations always receive the safe default role 'developer'.
+    // Privileged roles (admin, project_manager, tester) cannot be self-assigned.
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password,
-      role: role || 'developer'
+      role: 'developer',
+      authProvider: 'local'
     });
 
     // Generate token
@@ -156,8 +158,157 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+const googleAuthService = require('../services/googleAuthService');
+
+// @desc    Authenticate with Google OAuth ID Token
+// @route   POST /api/auth/google
+// @access  Public
+const googleLogin = async (req, res) => {
+  try {
+    const { credential, idToken } = req.body;
+    const tokenToVerify = credential || idToken;
+
+    if (!tokenToVerify) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google ID token credential is required'
+      });
+    }
+
+    if (!googleAuthService.isGoogleAuthConfigured()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google authentication is not configured on the server. Please set GOOGLE_CLIENT_ID.'
+      });
+    }
+
+    let payload;
+    try {
+      payload = await googleAuthService.verifyGoogleIdToken(tokenToVerify);
+    } catch (verifyError) {
+      return res.status(401).json({
+        success: false,
+        message: verifyError.message || 'Google token verification failed'
+      });
+    }
+
+    // Check if user already exists with this email
+    let user = await User.findOne({ email: payload.email });
+
+    if (user) {
+      // Existing user: Link googleId and avatar if not yet set
+      let needsSave = false;
+      if (!user.googleId && payload.googleId) {
+        user.googleId = payload.googleId;
+        needsSave = true;
+      }
+      if (payload.picture && !user.avatar) {
+        user.avatar = payload.picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
+    } else {
+      // New user: Create user with safe default role 'developer'
+      user = await User.create({
+        name: payload.name,
+        email: payload.email,
+        role: 'developer',
+        authProvider: 'google',
+        googleId: payload.googleId,
+        avatar: payload.picture
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google authentication successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error during Google authentication'
+    });
+  }
+};
+
+// @desc    Get public auth configuration status
+// @route   GET /api/auth/config
+// @access  Public
+const getAuthConfig = async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    googleAuthEnabled: googleAuthService.isGoogleAuthConfigured(),
+    clientId: googleAuthService.isGoogleAuthConfigured() ? process.env.GOOGLE_CLIENT_ID : null
+  });
+};
+
+// @desc    Update user role (Admin only)
+// @route   PUT /api/auth/users/:id/role
+// @access  Private/Admin
+const updateUserRole = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only authorized administrators can update user roles'
+      });
+    }
+
+    const { role } = req.body;
+    const validRoles = ['admin', 'project_manager', 'developer', 'tester'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role. Allowed roles: ${validRoles.join(', ')}`
+      });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.role = role;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `User role updated to ${role}`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error updating user role'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getCurrentUser
+  getCurrentUser,
+  googleLogin,
+  getAuthConfig,
+  updateUserRole
 };

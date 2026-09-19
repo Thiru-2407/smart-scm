@@ -51,9 +51,20 @@ export const AuthProvider = ({ children }) => {
     return response;
   };
 
-  // Registration handler
-  const register = async (name, email, password, role) => {
-    const response = await authService.register(name, email, password, role);
+  // Registration handler (public registrations default to 'developer' role)
+  const register = async (name, email, password) => {
+    const response = await authService.register(name, email, password);
+    if (response.success && response.token) {
+      localStorage.setItem('smart_scm_token', response.token);
+      setToken(response.token);
+      setUser(response.user);
+    }
+    return response;
+  };
+
+  // Google OAuth handler
+  const googleLogin = async (credential) => {
+    const response = await authService.googleLogin(credential);
     if (response.success && response.token) {
       localStorage.setItem('smart_scm_token', response.token);
       setToken(response.token);
@@ -75,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: Boolean(user && token),
     login,
+    googleLogin,
     register,
     logout
   };

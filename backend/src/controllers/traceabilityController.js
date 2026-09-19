@@ -4,6 +4,7 @@ const Version = require('../models/Version');
 const Bug = require('../models/Bug');
 const ChangeRequest = require('../models/ChangeRequest');
 const Release = require('../models/Release');
+const Baseline = require('../models/Baseline');
 const auditService = require('../services/auditService');
 
 /**
@@ -82,6 +83,7 @@ const getTraceabilityData = async (req, res) => {
             uvcsCoverage: 0
           },
           rows: [],
+          matrix: [],
           filters: {
             projects: accessibleProjects.map((p) => ({ id: p._id, name: p.name, key: p.key })),
             versions: [],
@@ -92,16 +94,25 @@ const getTraceabilityData = async (req, res) => {
     }
 
     // Fetch all related SCM artifacts in parallel across targeted projects
-    const [rawVersions, rawReleases, rawBugs, rawCRs] = await Promise.all([
+    const [rawVersions, rawReleases, rawBugs, rawCRs, rawBaselines] = await Promise.all([
       Version.find({ project: { $in: targetProjectIds } }).sort({ versionNumber: 1 }).lean(),
       Release.find({ project: { $in: targetProjectIds } }).populate('version').sort({ createdAt: -1 }).lean(),
       Bug.find({ project: { $in: targetProjectIds } }).sort({ createdAt: -1 }).lean(),
-      ChangeRequest.find({ project: { $in: targetProjectIds } }).sort({ createdAt: -1 }).lean()
+      ChangeRequest.find({ project: { $in: targetProjectIds } }).sort({ createdAt: -1 }).lean(),
+      Baseline.find({ project: { $in: targetProjectIds } }).sort({ createdAt: -1 }).lean()
     ]);
 
     // Map projects by ID for quick lookup
     const projectMap = new Map();
     accessibleProjects.forEach((p) => projectMap.set(p._id.toString(), p));
+
+    // Baseline lookups
+    const versionToBaseline = new Map();
+    const releaseToBaseline = new Map();
+    rawBaselines.forEach((b) => {
+      if (b.version) versionToBaseline.set(b.version.toString(), b);
+      if (b.release) releaseToBaseline.set(b.release.toString(), b);
+    });
 
     // Maps for entity lookup
     const versionMap = new Map();
@@ -272,6 +283,23 @@ const getTraceabilityData = async (req, res) => {
           };
         }
 
+        // Resolve Configuration Baseline entity
+        let baselineData = null;
+        const foundBaseline = (ver && versionToBaseline.get(ver._id.toString())) ||
+                              (rel && releaseToBaseline.get(rel._id.toString())) ||
+                              null;
+        if (foundBaseline) {
+          baselineData = {
+            id: foundBaseline._id,
+            baselineId: foundBaseline.baselineId,
+            name: foundBaseline.name,
+            status: foundBaseline.status,
+            changesetId: foundBaseline.changesetId,
+            branch: foundBaseline.branch,
+            repository: foundBaseline.repository
+          };
+        }
+
         // Determine overall lifecycle status of this chain
         let lifecycleStage = 'Unlinked';
         if (rel && rel.status === 'published') {
@@ -326,6 +354,7 @@ const getTraceabilityData = async (req, res) => {
                 status: ver.status
               }
             : null,
+          baseline: baselineData,
           uvcs: uvcsData,
           release: rel
             ? {
@@ -501,6 +530,9 @@ const getTraceabilityData = async (req, res) => {
           linkedVersions: linkedVersionCount,
           totalReleases,
           linkedReleases: linkedReleaseCount,
+          totalBaselines: rawBaselines.length,
+          activeBaselines: rawBaselines.filter((b) => b.status === 'active').length,
+          frozenBaselines: rawBaselines.filter((b) => b.status === 'frozen').length,
           uvcsLinkedVersions,
           uvcsLinkedReleases,
           coveragePercentage,
@@ -511,6 +543,7 @@ const getTraceabilityData = async (req, res) => {
           uvcsCoverage
         },
         rows: filteredRows,
+        matrix: filteredRows,
         filters: {
           projects: accessibleProjects.map((p) => ({ id: p._id, name: p.name, key: p.key })),
           versions: rawVersions.map((v) => ({

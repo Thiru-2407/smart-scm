@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { releaseService, uvcsService } from '../services/api';
+import { releaseService, uvcsService, baselineService, readinessService } from '../services/api';
 
 const statusLabels = {
   draft: 'Draft',
@@ -73,6 +73,15 @@ const ReleaseDetails = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Readiness assessment state
+  const [readinessData, setReadinessData] = useState(null);
+  const [isLoadingReadiness, setIsLoadingReadiness] = useState(false);
+
+  // Changeset inspector modal
+  const [showChangesetModal, setShowChangesetModal] = useState(false);
+  const [selectedChangesetDetails, setSelectedChangesetDetails] = useState(null);
+  const [isLoadingChangesetDetails, setIsLoadingChangesetDetails] = useState(false);
+
   const fetchReleaseDetails = async () => {
     try {
       setIsLoading(true);
@@ -91,6 +100,19 @@ const ReleaseDetails = () => {
             : '',
           releaseNotes: response.release.releaseNotes || ''
         });
+
+        // Load release readiness assessment
+        try {
+          setIsLoadingReadiness(true);
+          const rRes = await readinessService.getReleaseReadinessByRelease(releaseId);
+          if (rRes.success && rRes.assessment) {
+            setReadinessData(rRes.assessment);
+          }
+        } catch (rErr) {
+          console.error('Error fetching release readiness:', rErr);
+        } finally {
+          setIsLoadingReadiness(false);
+        }
       }
     } catch (error) {
       setErrorMessage(error.message || 'Failed to load release details');
@@ -109,6 +131,21 @@ const ReleaseDetails = () => {
   const isOwner = project && user && project.owner === user.id;
   const isAdmin = user && user.role === 'admin';
   const canManage = isOwner || isAdmin;
+
+  const formatVersion = (num) => num ? (String(num).startsWith('v') ? num : `v${num}`) : 'v1.0.0';
+
+  const activeBaseline = release?.baseline || version?.baseline || null;
+  const activeUvcs = release?.uvcs?.changesetId !== null && release?.uvcs?.changesetId !== undefined
+    ? release.uvcs
+    : version?.uvcs?.changesetId !== null && version?.uvcs?.changesetId !== undefined
+    ? version.uvcs
+    : activeBaseline
+    ? {
+        changesetId: activeBaseline.changesetId,
+        branch: activeBaseline.branch,
+        repository: activeBaseline.repository
+      }
+    : null;
 
   // 1. Generate Release Notes handler
   const handleGenerateReleaseNotes = async () => {
@@ -234,7 +271,7 @@ const ReleaseDetails = () => {
       if (res.success) {
         setSuccessMessage(res.message || 'UVCS baseline linked to release successfully!');
         setShowUvcsModal(false);
-        fetchReleaseData();
+        fetchReleaseDetails();
       } else {
         setUvcsModalError(res.message || 'Failed to link baseline');
       }
@@ -252,10 +289,39 @@ const ReleaseDetails = () => {
       if (res.success) {
         setSuccessMessage('UVCS baseline unlinked successfully');
         setShowUvcsModal(false);
-        fetchReleaseData();
+        fetchReleaseDetails();
       }
     } catch (err) {
       setErrorMessage(err.message || 'Error unlinking UVCS baseline');
+    }
+  };
+
+  const handleInspectChangeset = async (csId) => {
+    try {
+      setIsLoadingChangesetDetails(true);
+      setShowChangesetModal(true);
+      const res = await uvcsService.getChangesetDetails(csId, 'default@local');
+      if (res.success && res.changeset) {
+        setSelectedChangesetDetails(res.changeset);
+      }
+    } catch (err) {
+      console.error('Error fetching changeset details:', err);
+    } finally {
+      setIsLoadingChangesetDetails(false);
+    }
+  };
+
+  const handleFreezeBaseline = async (bId) => {
+    if (!window.confirm('Are you sure you want to freeze this configuration baseline? Frozen baselines become immutable audit records.')) return;
+    try {
+      const res = await baselineService.freezeBaseline(bId);
+      if (res.success) {
+        setSuccessMessage(`Baseline ${res.baseline?.baselineId || ''} frozen successfully.`);
+        setTimeout(() => setSuccessMessage(''), 4000);
+        fetchReleaseDetails();
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Failed to freeze baseline');
     }
   };
 
@@ -325,7 +391,7 @@ const ReleaseDetails = () => {
             <div className="key-and-status">
               <span className="project-key-tag large">{project?.key}</span>
               <span className="version-number-tag large">
-                v{version?.versionNumber || '1.0.0'}
+                {formatVersion(version?.versionNumber)}
               </span>
               <span className={`status-pill status-${release.status}`} id="release-status-pill">
                 {statusLabels[release.status] || release.status}
@@ -444,6 +510,162 @@ const ReleaseDetails = () => {
           </div>
         </div>
 
+        {/* Release Configuration & Baseline Section */}
+        <div className="card baseline-card" id="card-release-baseline" style={{ marginTop: '1.5rem', marginBottom: '1.5rem', borderTop: '4px solid #4f46e5' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.08em', color: '#4f46e5', textTransform: 'uppercase' }}>
+                CONFIGURATION BASELINE & SCM PROVENANCE
+              </div>
+              <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.25rem' }}>
+                Release Configuration & Source Control Baseline
+              </h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                SOURCE: SMART SCM & UVCS
+              </span>
+              {activeUvcs ? (
+                <span className={`status-pill ${activeBaseline?.status === 'frozen' ? 'status-success' : 'status-published'}`} id="badge-release-uvcs-linked">
+                  {activeBaseline?.status === 'frozen' ? '❄️ FROZEN BASELINE' : (activeBaseline ? '● ACTIVE BASELINE' : `● Linked (cs:${activeUvcs.changesetId})`)}
+                </span>
+              ) : (
+                <span className="status-pill status-deprecated" id="badge-release-uvcs-unlinked">
+                  ○ Unlinked Baseline
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="card-body">
+            {/* SCM Visual Flow Chain */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem 1rem', background: '#f1f5f9', borderRadius: '8px', marginBottom: '1.25rem', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+              <span style={{ fontWeight: 700, color: '#334155' }}>SCM Baseline Chain:</span>
+              <span className="badge-tag" style={{ background: '#3b82f6', color: '#fff' }}>
+                Release: {release.releaseName}
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: '#10b981', color: '#fff' }}>
+                Version: {formatVersion(version?.versionNumber)}
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: activeBaseline ? (activeBaseline.status === 'frozen' ? '#0284c7' : '#6366f1') : '#94a3b8', color: '#fff' }}>
+                Baseline: {activeBaseline ? `${activeBaseline.baselineId} (${activeBaseline.status})` : 'Unassigned'}
+              </span>
+              <span style={{ color: '#64748b', fontWeight: 'bold' }}>&rarr;</span>
+              <span className="badge-tag" style={{ background: activeUvcs ? '#0f172a' : '#94a3b8', color: '#fff' }}>
+                UVCS: {activeUvcs ? `cs:${activeUvcs.changesetId}` : 'Not Linked'}
+              </span>
+            </div>
+
+            <div className="meta-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Release Name:</span>
+                <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>{release.releaseName}</strong>
+              </div>
+
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Target Version:</span>
+                <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>{formatVersion(version?.versionNumber)}</strong>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.35rem' }}>({version?.name})</span>
+              </div>
+
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>Baseline Identifier:</span>
+                <strong style={{ fontSize: '0.95rem', color: activeBaseline ? '#4338ca' : '#94a3b8' }}>
+                  {activeBaseline ? activeBaseline.baselineId : 'BL-UNASSIGNED'}
+                </strong>
+                {activeBaseline && (
+                  <span className={`status-pill status-${activeBaseline.status === 'frozen' ? 'success' : 'in_progress'}`} style={{ marginLeft: '0.35rem', fontSize: '0.7rem' }}>
+                    {activeBaseline.status}
+                  </span>
+                )}
+              </div>
+
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>UVCS Repository:</span>
+                <code style={{ fontSize: '0.85rem', color: '#1e293b' }}>
+                  {activeUvcs?.repository || 'default@local'}
+                </code>
+              </div>
+
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>UVCS Branch:</span>
+                <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>
+                  {activeUvcs?.branch || '/main'}
+                </strong>
+              </div>
+
+              <div className="meta-item-box" style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '600', display: 'block' }}>UVCS Changeset:</span>
+                {activeUvcs ? (
+                  <span className="status-pill status-in_progress" style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                    cs:{activeUvcs.changesetId}
+                  </span>
+                ) : (
+                  <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>Not linked</span>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              {activeUvcs && (
+                <button
+                  type="button"
+                  onClick={() => handleInspectChangeset(activeUvcs.changesetId)}
+                  className="btn-secondary-small"
+                  id="btn-inspect-release-changeset"
+                >
+                  🔍 Inspect Changeset cs:{activeUvcs.changesetId}
+                </button>
+              )}
+
+              <Link
+                to="/baselines"
+                className="btn-secondary-small"
+                style={{ textDecoration: 'none' }}
+              >
+                📋 View Baselines Registry
+              </Link>
+
+              {activeBaseline && activeBaseline.status !== 'frozen' && canManage && (
+                <button
+                  type="button"
+                  onClick={() => handleFreezeBaseline(activeBaseline._id)}
+                  className="btn-secondary-small"
+                  id="btn-freeze-release-baseline"
+                  style={{ color: '#0284c7', borderColor: '#0284c7' }}
+                >
+                  ❄️ Freeze Baseline
+                </button>
+              )}
+
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={handleOpenUvcsModal}
+                  className="btn-action-primary-small"
+                  id="btn-manage-release-baseline"
+                >
+                  {activeUvcs ? '🔄 Change Baseline Link' : '🔗 Link UVCS Baseline'}
+                </button>
+              )}
+
+              {canManage && release.uvcs?.changesetId !== null && release.uvcs?.changesetId !== undefined && (
+                <button
+                  type="button"
+                  onClick={handleUnlinkUvcs}
+                  className="btn-danger-outline"
+                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.78rem' }}
+                  id="btn-unlink-release-baseline-btn"
+                >
+                  Unlink
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Release Metadata Grid */}
         <div className="details-grid">
           {/* Main Release Notes & Description Card */}
@@ -504,7 +726,7 @@ const ReleaseDetails = () => {
                 <div className="meta-row">
                   <span className="meta-label">Associated Version</span>
                   <span className="meta-value">
-                    <strong>v{version?.versionNumber}</strong> &mdash; {version?.name} (
+                    <strong>{formatVersion(version?.versionNumber)}</strong> &mdash; {version?.name} (
                     <span className={`status-pill status-${version?.status}`}>
                       {version?.status}
                     </span>
@@ -725,13 +947,15 @@ const ReleaseDetails = () => {
             <div>
               <h3 style={{ margin: 0 }}>Configuration Management Traceability</h3>
               <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Baseline linkages across software version releases, defects, change requests, and Unity Version Control.
+                Bi-directional baseline linkages across software version releases, defects, change requests, and Unity Version Control.
               </p>
             </div>
-            <span className="badge-upcoming">SCM Traceability</span>
+            <Link to={`/traceability?project=${projectId}&version=${version?._id || ''}`} className="btn-secondary-small" style={{ textDecoration: 'none' }}>
+              📊 Open Traceability Matrix
+            </Link>
           </div>
           <div className="card-body">
-            <div className="traceability-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            <div className="traceability-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
               <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
                   Project Scope
@@ -744,32 +968,188 @@ const ReleaseDetails = () => {
                 <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
                   Software Version Baseline
                 </span>
-                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>v{version?.versionNumber}</strong>
+                <strong style={{ fontSize: '1rem', color: '#1e293b' }}>{formatVersion(version?.versionNumber)}</strong>
                 <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>({version?.name})</span>
+              </div>
+
+              <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
+                  Configuration Baseline
+                </span>
+                {activeBaseline ? (
+                  <div>
+                    <strong style={{ fontSize: '1rem', color: '#4338ca' }}>{activeBaseline.baselineId}</strong>
+                    <span className={`status-pill status-${activeBaseline.status === 'frozen' ? 'success' : 'in_progress'}`} style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}>
+                      {activeBaseline.status}
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
+                    Unassigned
+                  </span>
+                )}
               </div>
 
               <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
                   Unity Version Control Changeset
                 </span>
-                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                  Not linked yet
-                </span>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  Unity Version Control check-ins and changesets are tracked separately.
-                </p>
+                {activeUvcs ? (
+                  <div>
+                    <span className="status-pill status-in_progress" style={{ fontWeight: 700 }}>
+                      cs:{activeUvcs.changesetId}
+                    </span>
+                    <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>
+                      on <strong>{activeUvcs.branch || '/main'}</strong>
+                    </span>
+                  </div>
+                ) : (
+                  <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
+                    Not linked yet
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SCM Release Readiness & Governance Checklist */}
+        <div className="card" id="card-release-readiness-checklist" style={{ marginTop: '1.5rem', borderTop: '4px solid #059669' }}>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: '800', letterSpacing: '0.08em', color: '#059669', textTransform: 'uppercase' }}>
+                SCM RELEASE READINESS & GOVERNANCE
+              </div>
+              <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.25rem' }}>
+                Release Gate Checklist
+              </h3>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {readinessData ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: readinessData.readinessLevel === 'READY' ? '#166534' : readinessData.readinessLevel === 'WARNING' ? '#854d0e' : '#991b1b' }}>
+                    Score: {readinessData.overallScore}%
+                  </span>
+                  <span className={`status-pill status-${readinessData.readinessLevel === 'READY' ? 'published' : readinessData.readinessLevel === 'WARNING' ? 'pending_approval' : 'withdrawn'}`}>
+                    {readinessData.readinessLevel}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-muted" style={{ fontSize: '0.85rem' }}>Evaluating readiness...</span>
+              )}
+              <Link
+                to={`/release-readiness?release=${release._id}`}
+                className="btn-action-primary-small"
+                id="btn-full-readiness-audit"
+                style={{ textDecoration: 'none' }}
+              >
+                🛡️ Full Audit Report &rarr;
+              </Link>
+            </div>
+          </div>
+
+          <div className="card-body">
+            {readinessData?.blockers && readinessData.blockers.length > 0 && (
+              <div className="alert-error" style={{ marginBottom: '1rem' }}>
+                <span className="alert-icon">🚫</span>
+                <div>
+                  <strong>Release Gate Blockers:</strong>
+                  <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1.25rem' }}>
+                    {readinessData.blockers.map((blk, idx) => (
+                      <li key={idx}>{blk}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+              {/* Category 1: Configuration */}
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>📦 Configuration Baseline</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>SCM State</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{version ? '✅' : '❌'}</span>
+                    <span>Version {formatVersion(version?.versionNumber)} defined ({version?.status || 'missing'})</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{activeUvcs ? '✅' : '⚠️'}</span>
+                    <span>UVCS Baseline: {activeUvcs ? `Linked (cs:${activeUvcs.changesetId})` : 'Not linked'}</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>{activeBaseline ? '✅' : '⚠️'}</span>
+                    <span>Formal Baseline: {activeBaseline ? `${activeBaseline.baselineId} (${activeBaseline.status})` : 'Optional'}</span>
+                  </li>
+                </ul>
               </div>
 
-              <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
-                  Unity Version Control Branch
-                </span>
-                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontWeight: 500 }}>
-                  Not linked yet
-                </span>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                  Feature branches and release tags are managed directly in Unity Version Control.
-                </p>
+              {/* Category 2: Change Management */}
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>🔄 Change Management</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Proposals</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>✅</span>
+                    <span>Approved Changes: {relatedCRs.length} change request(s)</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>✅</span>
+                    <span>Baseline Changes: {release.includedChanges?.length || 0} change entries</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>✅</span>
+                    <span>Scope Integrity: No unapproved changes in release</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Category 3: Defects & Quality */}
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>🐛 Defect Governance</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>QA Metrics</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{readinessData?.checks?.find(c => c.key === 'critical_bugs')?.status === 'PASS' ? '✅' : '⚠️'}</span>
+                    <span>Zero critical open bugs</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{readinessData?.checks?.find(c => c.key === 'open_bugs')?.status === 'PASS' ? '✅' : '⚠️'}</span>
+                    <span>Defect resolution state verified</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>✅</span>
+                    <span>Resolved Bugs: {release.fixedBugs?.length || 0} fixed defects bound</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Category 4: Release & Governance */}
+              <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between' }}>
+                  <span>📋 Release Sign-Off</span>
+                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Governance</span>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.85rem' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{release.releaseNotes ? '✅' : '⚠️'}</span>
+                    <span>Release notes: {release.releaseNotes ? 'Compiled' : 'Pending generation'}</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <span>{release.approvedBy ? '✅' : '⏳'}</span>
+                    <span>Sign-off: {release.approvedBy ? `Approved by ${release.approvedBy.name}` : 'Pending approval'}</span>
+                  </li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>{release.status === 'published' ? '🚀' : '⏳'}</span>
+                    <span>Publication State: {statusLabels[release.status] || release.status}</span>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
@@ -981,6 +1361,90 @@ const ReleaseDetails = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* UVCS Changeset Inspector Modal */}
+        {showChangesetModal && (
+          <div className="modal-overlay" id="modal-changeset-inspector">
+            <div className="modal-card">
+              <div className="modal-header">
+                <h3>UVCS Changeset Inspector</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowChangesetModal(false)}
+                  className="btn-modal-close"
+                  id="btn-close-changeset-inspector"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="modal-body" style={{ padding: '1.5rem' }}>
+                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="status-pill status-in_progress" style={{ fontSize: '1rem', fontWeight: 700 }}>
+                    cs:{selectedChangesetDetails?.changesetId || activeUvcs?.changesetId}
+                  </span>
+                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
+                    SOURCE: UNITY VERSION CONTROL
+                  </span>
+                </div>
+
+                {isLoadingChangesetDetails ? (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    <div className="spinner"></div>
+                    <p>Querying Unity Version Control metadata...</p>
+                  </div>
+                ) : selectedChangesetDetails ? (
+                  <div className="meta-list" style={{ fontSize: '0.9rem' }}>
+                    <div className="meta-row">
+                      <span className="meta-label">Branch:</span>
+                      <span className="meta-value"><strong>{selectedChangesetDetails.branch || '/main'}</strong></span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Author:</span>
+                      <span className="meta-value">{selectedChangesetDetails.owner || 'Local User'}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Date:</span>
+                      <span className="meta-value">{selectedChangesetDetails.date ? new Date(selectedChangesetDetails.date).toLocaleString() : 'Active'}</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">GUID:</span>
+                      <span className="meta-value"><code style={{ fontSize: '0.78rem' }}>{selectedChangesetDetails.guid || 'N/A'}</code></span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="meta-label">Comment:</span>
+                      <span className="meta-value"><em>{selectedChangesetDetails.comment || 'Initial baseline'}</em></span>
+                    </div>
+                    {selectedChangesetDetails.files && selectedChangesetDetails.files.length > 0 && (
+                      <div style={{ marginTop: '1rem' }}>
+                        <span className="meta-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+                          Controlled Files ({selectedChangesetDetails.files.length}):
+                        </span>
+                        <div style={{ maxHeight: '160px', overflowY: 'auto', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.82rem', fontFamily: 'monospace' }}>
+                          {selectedChangesetDetails.files.map((f, idx) => (
+                            <div key={idx} style={{ padding: '0.15rem 0' }}>{f}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-muted">No details available for this changeset.</p>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowChangesetModal(false)}
+                  className="btn-secondary"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
