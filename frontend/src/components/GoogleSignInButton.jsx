@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { authService } from '../services/api';
+import { useState } from 'react';
+import { auth, googleProvider, isFirebaseConfigured } from '../services/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 /**
  * Google SVG Logo Component
@@ -27,120 +28,49 @@ export const GoogleLogo = () => (
 
 /**
  * GoogleSignInButton Component
- * Supports Google Identity Services (GIS) with automatic graceful fallback
- * when VITE_GOOGLE_CLIENT_ID or backend GOOGLE_CLIENT_ID is not configured.
+ * Supports Firebase Authentication (Google Provider) with automatic graceful fallback
+ * when Firebase environment variables are not configured.
  */
 const GoogleSignInButton = ({ onGoogleSuccess, onError, text = 'Continue with Google', disabled = false }) => {
-  const [clientId, setClientId] = useState(
-    import.meta.env.VITE_GOOGLE_CLIENT_ID || null
-  );
-  const [gisLoaded, setGisLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const googleButtonRef = useRef(null);
+  const isConfigured = isFirebaseConfigured();
 
-  // Check backend auth config if frontend env is not set
-  useEffect(() => {
-    let isMounted = true;
-    if (!clientId) {
-      authService.getAuthConfig()
-        .then((res) => {
-          if (isMounted && res.googleAuthEnabled && res.clientId) {
-            setClientId(res.clientId);
-          }
-        })
-        .catch(() => {
-          // Backend may be offline or config unavailable; fallback button will remain
-        });
-    }
-    return () => {
-      isMounted = false;
-    };
-  }, [clientId]);
+  const handleGoogleClick = async () => {
+    if (!isConfigured) return;
 
-  // Load Google Identity Services script if clientId is available
-  useEffect(() => {
-    if (!clientId) return;
-
-    if (window.google?.accounts?.id) {
-      setGisLoaded(true);
-      return;
-    }
-
-    const scriptId = 'google-identity-services-script';
-    let script = document.getElementById(scriptId);
-
-    if (!script) {
-      script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => setGisLoaded(true);
-      script.onerror = () => {
-        console.warn('Google Identity Services script could not be loaded.');
-      };
-      document.body.appendChild(script);
-    } else {
-      script.addEventListener('load', () => setGisLoaded(true));
-    }
-  }, [clientId]);
-
-  // Render official Google button if GIS is loaded and clientId is available
-  useEffect(() => {
-    if (clientId && gisLoaded && window.google?.accounts?.id && googleButtonRef.current) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            if (response.credential) {
-              try {
-                setLoading(true);
-                await onGoogleSuccess(response.credential);
-              } catch (err) {
-                if (onError) {
-                  onError(err.message || 'Google sign-in failed');
-                }
-              } finally {
-                setLoading(false);
-              }
-            }
-          }
-        });
-
-        googleButtonRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(googleButtonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          type: 'standard',
-          text: 'continue_with',
-          shape: 'rectangular',
-          logo_alignment: 'left',
-          width: 380
-        });
-      } catch (err) {
-        console.warn('Failed to render Google Identity Services button:', err);
+    try {
+      setLoading(true);
+      const result = await signInWithPopup(auth, googleProvider);
+      if (result && result.user) {
+        const idToken = await result.user.getIdToken();
+        await onGoogleSuccess(idToken);
       }
-    }
-  }, [clientId, gisLoaded, onGoogleSuccess, onError]);
-
-  // Fallback click handler if not disabled
-  const handleFallbackClick = () => {
-    if (!clientId) {
-      if (onError) {
-        onError('Google authentication is not configured in this environment. Set VITE_GOOGLE_CLIENT_ID to enable Google Sign-In.');
+    } catch (err) {
+      // Don't show error if user simply closed the popup
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        if (onError) {
+          onError(err.message || 'Google sign-in failed');
+        }
       }
-    } else if (!gisLoaded) {
-      if (onError) {
-        onError('Google Sign-In service is loading or unreachable. Please try again.');
-      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (clientId && gisLoaded) {
+  // If Firebase is configured, render active, clickable Google button
+  if (isConfigured) {
     return (
       <div className="google-signin-wrapper">
-        <div ref={googleButtonRef} className="google-btn-container" />
-        {loading && <p className="google-signin-status">Signing in with Google...</p>}
+        <button
+          type="button"
+          id="btn-google-signin"
+          className="btn-google"
+          onClick={handleGoogleClick}
+          disabled={disabled || loading}
+        >
+          <GoogleLogo />
+          <span>{loading ? 'Signing in with Google...' : text}</span>
+        </button>
       </div>
     );
   }
@@ -152,7 +82,6 @@ const GoogleSignInButton = ({ onGoogleSuccess, onError, text = 'Continue with Go
         type="button"
         id="btn-google-signin"
         className="btn-google btn-google-disabled"
-        onClick={handleFallbackClick}
         disabled={true}
         aria-disabled="true"
         title="Google authentication is not configured in this environment"

@@ -250,7 +250,8 @@ const getAuthConfig = async (req, res) => {
   return res.status(200).json({
     success: true,
     googleAuthEnabled: googleAuthService.isGoogleAuthConfigured(),
-    clientId: googleAuthService.isGoogleAuthConfigured() ? process.env.GOOGLE_CLIENT_ID : null
+    firebaseProjectId: process.env.FIREBASE_PROJECT_ID || null,
+    clientId: googleAuthService.isGoogleAuthConfigured() ? (process.env.GOOGLE_CLIENT_ID || process.env.FIREBASE_PROJECT_ID) : null
   });
 };
 
