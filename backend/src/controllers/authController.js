@@ -305,11 +305,49 @@ const updateUserRole = async (req, res) => {
   }
 };
 
+// @desc    Get all users directory (Admin only)
+// @route   GET /api/auth/users
+// @access  Private/Admin
+const getUsers = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only authorized administrators can access user management'
+      });
+    }
+
+    const users = await User.find()
+      .select('name email role createdAt authProvider avatar')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      users: users.map((u) => ({
+        id: u._id,
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        authProvider: u.authProvider || 'local',
+        avatar: u.avatar || null,
+        createdAt: u.createdAt
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error retrieving users'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getCurrentUser,
   googleLogin,
   getAuthConfig,
+  getUsers,
   updateUserRole
 };

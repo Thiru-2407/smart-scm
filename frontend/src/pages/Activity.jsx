@@ -175,9 +175,6 @@ const Activity = () => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Audit &amp; Activity Log</h1>
-              <span className="badge-active" style={{ background: '#eff6ff', color: 'var(--primary)', borderColor: '#bfdbfe' }}>
-                Phase 13 - Live
-              </span>
             </div>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.92rem' }}>
               Chronological immutable record of configuration management events, approvals, and traceability baselines.

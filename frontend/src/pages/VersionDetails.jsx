@@ -476,7 +476,6 @@ const VersionDetails = () => {
           <div className="card info-card">
             <div className="card-header">
               <h3>Version Metadata</h3>
-              <span className="badge-upcoming">Release Info</span>
             </div>
             <div className="card-body">
               <div className="meta-list">
@@ -528,9 +527,6 @@ const VersionDetails = () => {
                 </h3>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                  SOURCE: UNITY VERSION CONTROL
-                </span>
                 {version.uvcs?.changesetId !== null && version.uvcs?.changesetId !== undefined ? (
                   <span className={`status-pill ${baselineDoc?.status === 'frozen' ? 'status-success' : 'status-published'}`} id="badge-uvcs-linked">
                     {baselineDoc?.status === 'frozen' ? '❄️ FROZEN' : (baselineDoc ? '● ACTIVE BASELINE' : `● Linked (cs:${version.uvcs.changesetId})`)}
@@ -544,10 +540,6 @@ const VersionDetails = () => {
             </div>
 
             <div className="card-body">
-              <div style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#475569' }}>
-                💡 <em>Unity Version Control manages source-code configuration and changesets. Smart SCM manages project, version, change, defect and release metadata.</em>
-              </div>
-
               {version.uvcs?.changesetId !== null && version.uvcs?.changesetId !== undefined ? (
                 <div className="baseline-content">
                   <div className="meta-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
@@ -1022,10 +1014,7 @@ const VersionDetails = () => {
               <div className="modal-body" style={{ padding: '1.5rem' }}>
                 <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span className="status-pill status-in_progress" style={{ fontSize: '1rem', fontWeight: 700 }}>
-                    cs:{inspectingChangeset.changesetId}
-                  </span>
-                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                    SOURCE: UNITY VERSION CONTROL
+                    cs:{inspectingChangeset.changesetId || version?.uvcs?.changesetId}
                   </span>
                 </div>
 
@@ -1101,9 +1090,6 @@ const VersionDetails = () => {
                   <strong style={{ fontSize: '1.1rem', color: '#1e293b' }}>
                     🌿 {version?.uvcs?.branch || '/main'}
                   </strong>
-                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                    SOURCE: UNITY VERSION CONTROL
-                  </span>
                 </div>
 
                 <div className="meta-list" style={{ fontSize: '0.9rem' }}>

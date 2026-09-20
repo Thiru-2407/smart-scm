@@ -191,7 +191,6 @@ const Reports = () => {
               <div className="section-title-row">
                 <div>
                   <h3>Global Configuration Management Overview</h3>
-                  <p>Aggregated portfolio baselines across all registered repositories.</p>
                 </div>
                 {selectedProjectId && (
                   <button
@@ -576,9 +575,6 @@ const Reports = () => {
               <section className="card" style={{ marginTop: '1.5rem' }}>
                 <div className="card-header">
                   <h3>Repository Portfolio Summary</h3>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Overview of all projects registered in Smart SCM. Click any row or use the selector above to drill down.
-                  </p>
                 </div>
                 <div className="card-body">
                   {projects.length === 0 ? (
@@ -647,14 +643,8 @@ const Reports = () => {
 
             {/* Configuration Management Traceability Card */}
             <div className="card traceability-card" style={{ marginTop: '1.5rem' }}>
-              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ margin: 0 }}>SCM Configuration Management Architecture</h3>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Reports compute live metrics from MongoDB application-level baselines, releases, and defect tracking.
-                  </p>
-                </div>
-                <span className="badge-upcoming">Phase 9 Operational</span>
+              <div className="card-header">
+                <h3 style={{ margin: 0 }}>SCM Configuration Management Architecture</h3>
               </div>
               <div className="card-body">
                 <div className="traceability-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
@@ -663,9 +653,6 @@ const Reports = () => {
                       Application Data Source
                     </span>
                     <strong style={{ fontSize: '1rem', color: '#1e293b' }}>MongoDB Persistence</strong>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      Real-time aggregation across projects, versions, defects, change requests, and releases.
-                    </p>
                   </div>
 
                   <div className="trace-item" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -673,9 +660,6 @@ const Reports = () => {
                       Source Code Version Control
                     </span>
                     <strong style={{ fontSize: '1rem', color: '#1e293b' }}>Unity Version Control</strong>
-                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#64748b' }}>
-                      Source-code commits, branches, merges, and rollbacks are maintained in Unity Version Control.
-                    </p>
                   </div>
                 </div>
               </div>

@@ -522,9 +522,6 @@ const ReleaseDetails = () => {
               </h3>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                SOURCE: SMART SCM & UVCS
-              </span>
               {activeUvcs ? (
                 <span className={`status-pill ${activeBaseline?.status === 'frozen' ? 'status-success' : 'status-published'}`} id="badge-release-uvcs-linked">
                   {activeBaseline?.status === 'frozen' ? '❄️ FROZEN BASELINE' : (activeBaseline ? '● ACTIVE BASELINE' : `● Linked (cs:${activeUvcs.changesetId})`)}
@@ -1385,9 +1382,6 @@ const ReleaseDetails = () => {
                 <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span className="status-pill status-in_progress" style={{ fontSize: '1rem', fontWeight: 700 }}>
                     cs:{selectedChangesetDetails?.changesetId || activeUvcs?.changesetId}
-                  </span>
-                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                    SOURCE: UNITY VERSION CONTROL
                   </span>
                 </div>
 

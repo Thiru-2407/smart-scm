@@ -426,14 +426,8 @@ const ChangeRequestDetails = () => {
               <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1.25rem' }}>
                 Change Impact Assessment
               </h3>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Evaluates upstream configuration baselines, software versions, correlated defects, and downstream release deliverables.
-              </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#fef3c7', color: '#92400e', fontWeight: '700' }}>
-                SOURCE: SMART SCM IMPACT ENGINE
-              </span>
               {impactData && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <span

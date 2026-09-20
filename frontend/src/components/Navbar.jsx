@@ -91,6 +91,15 @@ const Navbar = () => {
             >
               Version Control
             </NavLink>
+            {user?.role === 'admin' && (
+              <NavLink
+                to="/users"
+                className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
+                id="nav-link-users"
+              >
+                Team
+              </NavLink>
+            )}
           </nav>
         </div>
 

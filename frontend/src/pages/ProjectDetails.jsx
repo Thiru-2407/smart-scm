@@ -579,7 +579,7 @@ const ProjectDetails = () => {
         <div className="details-grid">
           <div className="card info-card">
             <div className="card-header">
-              <h3>Configuration Baseline Metadata</h3>
+              <h3>Project Information</h3>
             </div>
             <div className="card-body">
               <div className="meta-list">
@@ -616,7 +616,6 @@ const ProjectDetails = () => {
           <div className="card members-card">
             <div className="card-header">
               <h3>Team Members ({project.members?.length || 0})</h3>
-              <span className="badge-upcoming">Access Control</span>
             </div>
             <div className="card-body">
               {canManage && (
@@ -697,16 +696,11 @@ const ProjectDetails = () => {
         </div>
 
         {/* SCM Configuration Traceability Pipeline Bar */}
-        <div className="card scm-traceability-pipeline-card" style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '1rem 1.25rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+        <div className="card scm-traceability-pipeline-card" style={{ marginBottom: '1.5rem', background: '#f8fafc', padding: '0.85rem 1.25rem', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <span style={{ fontSize: '1.25rem' }}>🔗</span>
-              <div>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Configuration Management Traceability Pipeline</strong>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  End-to-end audit trail: Project &rarr; Version Baseline &rarr; Release Milestone &rarr; Unity VCS Repository Changeset
-                </p>
-              </div>
+              <span style={{ fontSize: '1.1rem' }}>🔗</span>
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Traceability Pipeline</strong>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.8rem' }}>
               <span className="project-key-tag">{project.key}</span>
@@ -796,10 +790,7 @@ const ProjectDetails = () => {
         {activeTab === 'versions' && (
           <section className="versions-section">
             <div className="section-title-row">
-              <div>
-                <h3>Software Versions & Releases ({versions.length})</h3>
-                <p>Configuration management release milestones and change records for this project.</p>
-              </div>
+              <h3>Software Versions ({versions.length})</h3>
               {canManage && (
                 <button
                   onClick={() => {
@@ -906,10 +897,7 @@ const ProjectDetails = () => {
         {activeTab === 'bugs' && (
           <section className="bugs-section">
             <div className="section-title-row">
-              <div>
-                <h3>Bug Tracking & Defect Reports ({bugs.length})</h3>
-                <p>Track issues, severity, priority, and assign resolution tasks to developers.</p>
-              </div>
+              <h3>Defects & Bugs ({bugs.length})</h3>
               <button
                 onClick={() => {
                   setBugError('');
@@ -1023,15 +1011,13 @@ const ProjectDetails = () => {
         )}
 
         {/* ================================================================= */}
+        {/* ================================================================= */}
         {/* TAB 3: Change Requests                                            */}
         {/* ================================================================= */}
         {activeTab === 'change-requests' && (
           <section className="change-requests-section">
             <div className="section-title-row">
-              <div>
-                <h3>Change Requests ({changeRequests.length})</h3>
-                <p>Formal configuration change proposals, impact evaluations, and lead approvals.</p>
-              </div>
+              <h3>Change Requests ({changeRequests.length})</h3>
               <button
                 onClick={() => {
                   setCrError('');
@@ -1144,10 +1130,7 @@ const ProjectDetails = () => {
         {activeTab === 'releases' && (
           <section className="releases-section">
             <div className="section-title-row">
-              <div>
-                <h3>Software Releases & Governance ({releases.length})</h3>
-                <p>Formal release milestones, approval pipelines, live release notes, and production baselines.</p>
-              </div>
+              <h3>Releases ({releases.length})</h3>
               {canManage && (
                 <button
                   onClick={() => {

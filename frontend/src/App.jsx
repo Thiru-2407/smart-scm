@@ -17,6 +17,7 @@ import Traceability from './pages/Traceability';
 import ImpactAnalysis from './pages/ImpactAnalysis';
 import ReleaseReadiness from './pages/ReleaseReadiness';
 import Baselines from './pages/Baselines';
+import Users from './pages/Users';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
             <Route path="/impact-analysis" element={<ImpactAnalysis />} />
             <Route path="/release-readiness" element={<ReleaseReadiness />} />
             <Route path="/uvcs" element={<UVCS />} />
+            <Route path="/users" element={<Users />} />
           </Route>
 
           {/* Fallback Redirects */}

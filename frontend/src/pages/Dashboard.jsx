@@ -54,7 +54,7 @@ const Dashboard = () => {
     archivedProjects: 0
   });
 
-  // Version statistics state (Phase 6)
+  // Version statistics state
   const [versionStats, setVersionStats] = useState({
     totalVersions: 0,
     development: 0,
@@ -63,7 +63,7 @@ const Dashboard = () => {
     deprecated: 0
   });
 
-  // Bug statistics state (Phase 7)
+  // Bug statistics state
   const [bugStats, setBugStats] = useState({
     totalBugs: 0,
     openBugs: 0,
@@ -73,7 +73,7 @@ const Dashboard = () => {
     reopenedBugs: 0
   });
 
-  // Change Request statistics state (Phase 7)
+  // Change Request statistics state
   const [crStats, setCrStats] = useState({
     totalCRs: 0,
     pendingCRs: 0,
@@ -83,7 +83,7 @@ const Dashboard = () => {
     cancelledCRs: 0
   });
 
-  // Release statistics state (Phase 8)
+  // Release statistics state
   const [releaseStats, setReleaseStats] = useState({
     totalReleases: 0,
     draftReleases: 0,
@@ -93,13 +93,13 @@ const Dashboard = () => {
     withdrawnReleases: 0
   });
 
-  // Recent releases list (Phase 8)
+  // Recent releases list
   const [recentReleases, setRecentReleases] = useState([]);
-  // Recent activities list (Phase 13)
+  // Recent activities list
   const [recentActivities, setRecentActivities] = useState([]);
   const [primaryProject, setPrimaryProject] = useState(null);
 
-  // Traceability summary state (Phase 14)
+  // Traceability summary state
   const [traceabilitySummary, setTraceabilitySummary] = useState({
     totalChangeRequests: 0,
     linkedChangeRequests: 0,
@@ -199,9 +199,16 @@ const Dashboard = () => {
       <Navbar />
 
       <main className="main-content">
-        <div className="dashboard-hero">
-          <h1>Welcome, {user?.name || 'Team Member'}</h1>
-          <p>Configuration Management and Release Governance System</p>
+        {/* 1. Page Title + Short One-Line Description */}
+        <div className="page-header" style={{ marginBottom: '1.75rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: '700', margin: '0 0 0.25rem 0' }}>
+              SCM Operations Dashboard
+            </h1>
+            <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.92rem' }}>
+              Real-time overview of projects, configuration baselines, version control, and release governance.
+            </p>
+          </div>
         </div>
 
         {/* Global Error Banner */}
@@ -212,18 +219,8 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* SCM Analytics Overview Banner */}
+        {/* 2. Key SCM Statistics */}
         <section className="stats-section scm-analytics-summary" style={{ marginBottom: '2rem' }}>
-          <div className="section-title-row">
-            <div>
-              <h3>SCM Intelligence &amp; Analytics Summary</h3>
-              <p>Real-time cross-repository configuration metrics computed directly from MongoDB.</p>
-            </div>
-            <Link to="/reports" className="btn-action-primary" id="dashboard-btn-reports">
-              📊 View Reports &rarr;
-            </Link>
-          </div>
-
           <div className="stats-grid stats-grid-5" id="dashboard-analytics-summary-grid">
             <div className="stat-card" id="dash-summary-projects">
               <div className="stat-icon-wrapper blue">📁</div>
@@ -272,273 +269,79 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Primary Demo Project Spotlight Banner */}
+        {/* 3. Current Project & Recent Releases Information */}
         {primaryProject && (
-          <section className="card demo-project-spotlight-card" style={{ marginBottom: '2.5rem', borderLeft: '4px solid var(--primary)', background: 'linear-gradient(to right, #ffffff, #f8fafc)' }}>
-            <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem' }}>
-              <div style={{ flex: 1, minWidth: '280px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+          <section className="card" style={{ marginBottom: '2rem', borderLeft: '4px solid var(--primary)', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
                   <span className="project-key-tag large">{primaryProject.key}</span>
-                  <span className="status-pill status-active">● Active Baseline</span>
-                  <span className="badge-tag cr-tag" style={{ fontSize: '0.75rem' }}>⭐ Primary Demo Project</span>
+                  <span className="status-pill status-active">● Active</span>
                 </div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: 'var(--text-main)', margin: '0.2rem 0' }}>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: '700', color: 'var(--text-main)', margin: '0 0 0.25rem 0' }}>
                   {primaryProject.name}
                 </h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', margin: 0 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>
                   {primaryProject.description}
                 </p>
-                <div style={{ display: 'flex', gap: '1.25rem', marginTop: '0.75rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
-                  <span><strong>Baseline Version:</strong> <span className="version-number-tag">v1.0.0</span></span>
-                  <span><strong>UVCS Anchor:</strong> <code style={{ background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>cs:0@/main (default@local)</code></span>
-                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
                 <Link
                   to={`/projects/${primaryProject._id}`}
                   className="btn-action-primary"
                   id="dashboard-btn-demo-project"
                 >
-                  🚀 Open Project Details &rarr;
+                  Open Project &rarr;
                 </Link>
                 <Link
-                  to="/uvcs"
+                  to="/projects"
                   className="btn-secondary"
-                  id="dashboard-btn-demo-uvcs"
+                  id="dashboard-btn-projects"
                 >
-                  🔍 Inspect UVCS &rarr;
+                  Manage Projects &rarr;
                 </Link>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)' }}>
+              <span><strong>Baseline Version:</strong> <span className="version-number-tag">v1.0.0</span></span>
+              <span><strong>UVCS Changeset:</strong> <code style={{ background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>cs:0@/main (default@local)</code></span>
+              <span><strong>Active Releases:</strong> {releaseStats.totalReleases} total ({releaseStats.publishedReleases} published)</span>
             </div>
           </section>
         )}
 
-        {/* Live Project Statistics Section */}
-        <section className="stats-section">
-          <div className="section-title-row">
-            <div>
-              <h3>Project Portfolio Metrics</h3>
-              <p>Aggregated directly from MongoDB project baselines.</p>
-            </div>
-            <Link to="/projects" className="btn-action-primary" id="dashboard-btn-projects">
-              Manage Projects &rarr;
-            </Link>
-          </div>
-
-          <div className="stats-grid">
-            <div className="stat-card" id="stat-total-projects">
-              <div className="stat-icon-wrapper blue">📁</div>
-              <div className="stat-content">
-                <span className="stat-label">Total Projects</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : projectStats.totalProjects}
-                </span>
-              </div>
+        {/* Recent Releases Section */}
+        {recentReleases.length > 0 && (
+          <section style={{ marginBottom: '2rem' }}>
+            <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0 }}>Recent Releases</h3>
             </div>
 
-            <div className="stat-card" id="stat-active-projects">
-              <div className="stat-icon-wrapper green">⚡</div>
-              <div className="stat-content">
-                <span className="stat-label">Active Projects</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : projectStats.activeProjects}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-completed-projects">
-              <div className="stat-icon-wrapper purple">🏁</div>
-              <div className="stat-content">
-                <span className="stat-label">Completed Projects</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : projectStats.completedProjects}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Live Software Version & Release Metrics Section */}
-        <section className="stats-section">
-          <div className="section-title-row">
-            <div>
-              <h3>Software Release & Version Metrics</h3>
-              <p>Real-time lifecycle breakdown across all configuration baselines.</p>
-            </div>
-          </div>
-
-          <div className="stats-grid stats-grid-4">
-            <div className="stat-card" id="stat-total-versions">
-              <div className="stat-icon-wrapper blue">🚀</div>
-              <div className="stat-content">
-                <span className="stat-label">Total Versions</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : versionStats.totalVersions}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-dev-versions">
-              <div className="stat-icon-wrapper amber">🛠️</div>
-              <div className="stat-content">
-                <span className="stat-label">In Development</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : versionStats.development}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-qa-versions">
-              <div className="stat-icon-wrapper indigo">🧪</div>
-              <div className="stat-content">
-                <span className="stat-label">In Testing / QA</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : versionStats.testing}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-released-versions">
-              <div className="stat-icon-wrapper green">✅</div>
-              <div className="stat-content">
-                <span className="stat-label">Released</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : versionStats.released}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Phase 8: Live Release Governance Metrics */}
-        <section className="stats-section">
-          <div className="section-title-row">
-            <div>
-              <h3>Release Management & Deployment Metrics</h3>
-              <p>Governance pipeline tracking application deployments from draft to production publishing.</p>
-            </div>
-          </div>
-
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-            <div className="stat-card" id="stat-total-releases">
-              <div className="stat-icon-wrapper blue">📦</div>
-              <div className="stat-content">
-                <span className="stat-label">Total Releases</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : releaseStats.totalReleases}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-draft-releases">
-              <div className="stat-icon-wrapper amber">📝</div>
-              <div className="stat-content">
-                <span className="stat-label">Draft</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : releaseStats.draftReleases}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-pending-approval-releases">
-              <div className="stat-icon-wrapper purple">⏳</div>
-              <div className="stat-content">
-                <span className="stat-label">Pending Approval</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : releaseStats.pendingApproval}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-approved-releases">
-              <div className="stat-icon-wrapper teal">👍</div>
-              <div className="stat-content">
-                <span className="stat-label">Approved</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : releaseStats.approvedReleases}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-published-releases">
-              <div className="stat-icon-wrapper green">🚀</div>
-              <div className="stat-content">
-                <span className="stat-label">Published</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : releaseStats.publishedReleases}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Phase 8: Recent Releases Section */}
-        <section className="recent-releases-section" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row">
-            <div>
-              <h3>Recent Releases & Deployments</h3>
-              <p>Latest application release baselines recorded in MongoDB.</p>
-            </div>
-          </div>
-
-          {recentReleases.length === 0 ? (
-            <div className="empty-state-card" id="empty-recent-releases" style={{ padding: '1.5rem', textAlign: 'center' }}>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                No releases published or created yet across projects.
-              </p>
-            </div>
-          ) : (
             <div className="table-responsive card" id="recent-releases-table">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Release Name</th>
+                    <th>Release</th>
                     <th>Project</th>
                     <th>Version</th>
                     <th>Status</th>
-                    <th>Release Date</th>
-                    <th>Actions</th>
+                    <th>Date</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recentReleases.map((rel) => (
+                  {recentReleases.slice(0, 4).map((rel) => (
                     <tr key={rel._id} className="recent-release-row">
-                      <td>
-                        <strong>{rel.releaseName}</strong>
-                      </td>
-                      <td>
-                        {rel.project ? (
-                          <span>
-                            {rel.project.name} (<code>{rel.project.key}</code>)
-                          </span>
-                        ) : (
-                          'Unknown Project'
-                        )}
-                      </td>
-                      <td>
-                        <span className="version-number-tag">
-                          v{rel.version?.versionNumber || '1.0.0'}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-pill status-${rel.status}`}>
-                          {releaseStatusLabels[rel.status] || rel.status}
-                        </span>
-                      </td>
-                      <td>
-                        <span className="date-text">
-                          {rel.releaseDate
-                            ? new Date(rel.releaseDate).toLocaleDateString()
-                            : 'Immediate'}
-                        </span>
-                      </td>
+                      <td><strong>{rel.releaseName}</strong></td>
+                      <td>{rel.project ? `${rel.project.name} (${rel.project.key})` : 'Smart SCM'}</td>
+                      <td><span className="version-number-tag">v{rel.version?.versionNumber || '1.0.0'}</span></td>
+                      <td><span className={`status-pill status-${rel.status}`}>{releaseStatusLabels[rel.status] || rel.status}</span></td>
+                      <td><span className="date-text">{rel.releaseDate ? new Date(rel.releaseDate).toLocaleDateString() : 'Immediate'}</span></td>
                       <td>
                         {rel.project && (
-                          <Link
-                            to={`/projects/${rel.project._id}/releases/${rel._id}`}
-                            className="btn-table-action"
-                          >
+                          <Link to={`/projects/${rel.project._id}/releases/${rel._id}`} className="btn-table-action">
                             View &rarr;
                           </Link>
                         )}
@@ -548,29 +351,19 @@ const Dashboard = () => {
                 </tbody>
               </table>
             </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* Source Control & Configuration Baselines Widget */}
-        <section className="uvcs-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <span className="badge-source-uvcs" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                  SOURCE: UNITY VERSION CONTROL & SMART SCM
-                </span>
-              </div>
-              <h3 style={{ margin: 0 }}>Source Control &amp; Configuration Baselines</h3>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.88rem', color: 'var(--text-muted)' }}>
-                Unity Version Control engine integration, repository workspace, and active baseline anchors.
-              </p>
-            </div>
+        {/* 4. Unity Version Control Status */}
+        <section className="uvcs-dashboard-widget" style={{ marginBottom: '2rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0 }}>Version Control Status</h3>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Link to="/baselines" className="btn btn-outline btn-sm" id="dashboard-btn-baselines">
                 Baselines &rarr;
               </Link>
               <Link to="/uvcs" className="btn btn-primary btn-sm" id="dashboard-btn-uvcs">
-                Open Version Control &rarr;
+                Open UVCS &rarr;
               </Link>
             </div>
           </div>
@@ -578,21 +371,21 @@ const Dashboard = () => {
           <div className="card" id="dashboard-uvcs-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #4f46e5' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>CLI Connection</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Engine Status</span>
                 <span className={`status-pill ${uvcsData?.connected ? 'status-published' : 'status-deprecated'}`} style={{ marginTop: '0.25rem', display: 'inline-block' }}>
-                  {uvcsData?.connected ? '🟢 UVCS Connected' : '○ Offline / Cloud Mode'}
+                  {uvcsData?.connected ? '🟢 Connected' : '○ Offline / Cloud'}
                 </span>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Repository Specification</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Repository</span>
                 <code style={{ fontSize: '0.9rem', color: '#1e293b' }}>
                   {uvcsData?.repository?.spec || 'default@local'}
                 </code>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Current Branch</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Branch</span>
                 <strong style={{ fontSize: '0.95rem', color: '#1e293b' }}>
                   {uvcsData?.branch || '/main'}
                 </strong>
@@ -606,7 +399,7 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Controlled Workspace</span>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block' }}>Workspace</span>
                 <span style={{ fontSize: '0.88rem', color: '#1e293b' }}>
                   <code>{uvcsData?.workspace?.name || 'smart_scm_wk'}</code> ({uvcsWkChanges?.count || 0} pending)
                 </span>
@@ -615,22 +408,19 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Phase 14: Traceability Coverage Widget */}
-        <section className="traceability-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3>Traceability Coverage</h3>
-              <p>End-to-end lifecycle mapping: Change Request &rarr; Bug &rarr; Version &rarr; UVCS Baseline &rarr; Release.</p>
-            </div>
+        {/* 5. SCM Workflow / Traceability */}
+        <section className="traceability-dashboard-widget" style={{ marginBottom: '2rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0 }}>Traceability & Governance</h3>
             <Link to="/traceability" className="btn btn-outline btn-sm" id="btn-view-traceability">
-              View Traceability &rarr;
+              View Matrix &rarr;
             </Link>
           </div>
 
-          <div className="card" id="dashboard-traceability-card" style={{ padding: '1.25rem 1.5rem' }}>
+          <div className="card" id="dashboard-traceability-card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.92rem', fontWeight: '600', color: 'var(--text-main)' }}>
-                Lifecycle Baseline Alignment
+                Baseline Lifecycle Alignment
               </span>
               <span style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--primary)' }}>
                 {isLoadingStats ? '...' : `${traceabilitySummary.coveragePercentage}%`}
@@ -664,75 +454,41 @@ const Dashboard = () => {
               </span>
             </div>
           </div>
-        </section>
 
-        {/* Phase 15: Change Impact Analysis Widget */}
-        <section className="impact-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3>Change Impact Analysis</h3>
-              <p>Analyze how configuration changes propagate through defects, versions, UVCS baselines, and releases.</p>
-            </div>
-            <Link to="/impact-analysis" className="btn btn-outline btn-sm" id="btn-analyze-impact">
-              Analyze Impact &rarr;
-            </Link>
-          </div>
-
-          <div className="card" id="dashboard-impact-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #8b5cf6' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: '700', color: '#1e293b' }}>
-                  Configuration Propagation &amp; Risk Evaluation
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.4 }}>
-                  Determine downstream configuration items affected by proposed changes across bugs, target versions, UVCS baselines, and published releases with direct vs. derived relationship classification.
+          {/* Compact Change Impact Analysis & Release Readiness */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div className="card" id="dashboard-impact-card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: '700' }}>Change Impact Analysis</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  View how a proposed change affects related bugs, versions, baselines and releases.
                 </p>
               </div>
-              <Link to="/impact-analysis" className="btn btn-primary btn-sm" id="dashboard-btn-impact-cta">
-                Launch Impact Engine &rarr;
+              <Link to="/impact-analysis" className="btn btn-outline btn-sm" id="dashboard-btn-impact-cta">
+                Analyze Impact &rarr;
+              </Link>
+            </div>
+
+            <div className="card" id="dashboard-readiness-card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', fontWeight: '700' }}>Release Readiness</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Check whether a release satisfies the required SCM conditions.
+                </p>
+              </div>
+              <Link to="/release-readiness" className="btn btn-outline btn-sm" id="dashboard-btn-readiness-cta">
+                Check Readiness &rarr;
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Phase 16: Release Readiness & Governance Widget */}
-        <section className="readiness-dashboard-widget" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3>Release Readiness &amp; Governance</h3>
-              <p>Verify pre-publication SCM readiness, blocking conditions, and 8-gate compliance.</p>
-            </div>
-            <Link to="/release-readiness" className="btn btn-outline btn-sm" id="btn-check-readiness">
-              Check Readiness &rarr;
-            </Link>
-          </div>
-
-          <div className="card" id="dashboard-readiness-card" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', borderLeft: '4px solid #10b981' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <div>
-                <h4 style={{ margin: '0 0 0.35rem 0', fontSize: '1rem', fontWeight: '700', color: '#1e293b' }}>
-                  Pre-Publication Configuration Governance
-                </h4>
-                <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-muted)', maxWidth: '650px', lineHeight: 1.4 }}>
-                  Ensure releases meet SCM criteria before publishing: version state, defect resolution, change request approval, traceability alignment, UVCS baseline verification, and governance sign-off.
-                </p>
-              </div>
-              <Link to="/release-readiness" className="btn btn-primary btn-sm" id="dashboard-btn-readiness-cta">
-                Evaluate Releases &rarr;
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Phase 13: Recent SCM Activity Stream */}
-        <section className="recent-activity-section" style={{ marginBottom: '2.5rem' }}>
-          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <h3>Recent SCM Activity</h3>
-              <p>Live chronological audit events recorded across projects in MongoDB.</p>
-            </div>
+        {/* 6. Recent Activity */}
+        <section className="recent-activity-section" style={{ marginBottom: '2rem' }}>
+          <div className="section-title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ margin: 0 }}>Recent Activity</h3>
             <Link to="/activity" className="btn btn-outline btn-sm" id="btn-view-all-activity">
-              View All Activity &rarr;
+              View All &rarr;
             </Link>
           </div>
 
@@ -745,7 +501,7 @@ const Dashboard = () => {
           ) : (
             <div className="card" id="recent-activity-card" style={{ padding: '0.75rem 1.25rem' }}>
               <div className="dashboard-activity-list">
-                {recentActivities.map((act) => (
+                {recentActivities.slice(0, 5).map((act) => (
                   <div key={act._id} className="dashboard-activity-item">
                     <div className="dashboard-activity-icon">
                       {getActivityIcon(act.action)}
@@ -772,230 +528,44 @@ const Dashboard = () => {
           )}
         </section>
 
-        {/* Phase 7: Live Bug Tracking Metrics */}
-        <section className="stats-section">
-          <div className="section-title-row">
-            <div>
-              <h3>Bug Tracking & Quality Metrics</h3>
-              <p>Active defect backlog and resolution lifecycle tracking.</p>
+        {/* 7. Quick Actions & Profile */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+          <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem' }}>Quick Actions</h3>
+            <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+              <Link to="/projects" className="btn btn-outline btn-sm">
+                📁 Projects
+              </Link>
+              <Link to="/baselines" className="btn btn-outline btn-sm">
+                🛡️ Baselines
+              </Link>
+              <Link to="/uvcs" className="btn btn-outline btn-sm">
+                🔄 Version Control
+              </Link>
+              <Link to="/reports" className="btn btn-outline btn-sm" id="dashboard-btn-reports">
+                📊 Reports
+              </Link>
+              {user?.role === 'admin' && (
+                <Link to="/users" className="btn btn-primary btn-sm" id="dashboard-btn-manage-users">
+                  👥 Manage Team
+                </Link>
+              )}
             </div>
           </div>
 
-          <div className="stats-grid stats-grid-4">
-            <div className="stat-card" id="stat-total-bugs">
-              <div className="stat-icon-wrapper red">🐛</div>
-              <div className="stat-content">
-                <span className="stat-label">Total Defects</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : bugStats.totalBugs}
-                </span>
-              </div>
+          <div className="card profile-card" style={{ padding: '1.25rem 1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem' }}>User Session</h3>
+              <span className={`role-badge role-${user?.role || 'developer'}`}>
+                {roleLabels[user?.role] || user?.role}
+              </span>
             </div>
-
-            <div className="stat-card" id="stat-open-bugs">
-              <div className="stat-icon-wrapper amber">⚠️</div>
-              <div className="stat-content">
-                <span className="stat-label">Open / Triage</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : bugStats.openBugs}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-inprogress-bugs">
-              <div className="stat-icon-wrapper blue">⚙️</div>
-              <div className="stat-content">
-                <span className="stat-label">In Progress</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : bugStats.inProgressBugs}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-resolved-bugs">
-              <div className="stat-icon-wrapper green">🎯</div>
-              <div className="stat-content">
-                <span className="stat-label">Resolved / Closed</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : (bugStats.resolvedBugs + bugStats.closedBugs)}
-                </span>
-              </div>
+            <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+              <div><strong style={{ color: 'var(--text-main)' }}>{user?.name}</strong></div>
+              <div>{user?.email}</div>
             </div>
           </div>
-        </section>
-
-        {/* Phase 7: Live Change Request Metrics */}
-        <section className="stats-section">
-          <div className="section-title-row">
-            <div>
-              <h3>Change Request Governance Metrics</h3>
-              <p>Formal change proposals, risk audits, and authorization pipeline.</p>
-            </div>
-          </div>
-
-          <div className="stats-grid stats-grid-4">
-            <div className="stat-card" id="stat-total-crs">
-              <div className="stat-icon-wrapper purple">📝</div>
-              <div className="stat-content">
-                <span className="stat-label">Total Requests</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : crStats.totalCRs}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-pending-crs">
-              <div className="stat-icon-wrapper amber">⏳</div>
-              <div className="stat-content">
-                <span className="stat-label">Pending Review</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : crStats.pendingCRs}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-approved-crs">
-              <div className="stat-icon-wrapper green">👍</div>
-              <div className="stat-content">
-                <span className="stat-label">Approved</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : crStats.approvedCRs}
-                </span>
-              </div>
-            </div>
-
-            <div className="stat-card" id="stat-implemented-crs">
-              <div className="stat-icon-wrapper teal">🚀</div>
-              <div className="stat-content">
-                <span className="stat-label">Implemented</span>
-                <span className="stat-value">
-                  {isLoadingStats ? <span className="stat-loading">...</span> : crStats.implementedCRs}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* User Identity Profile Card */}
-        <section className="profile-section">
-          <div className="card profile-card">
-            <div className="card-header">
-              <h3>Authenticated User Profile</h3>
-              <span className="status-pill status-active">Active Session</span>
-            </div>
-            <div className="card-body">
-              <div className="profile-grid">
-                <div className="profile-item">
-                  <span className="label">Full Name</span>
-                  <span className="value">{user?.name}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="label">Email Address</span>
-                  <span className="value">{user?.email}</span>
-                </div>
-                <div className="profile-item">
-                  <span className="label">Assigned Role</span>
-                  <span className="value">
-                    <span className={`role-badge role-${user?.role || 'developer'}`}>
-                      {roleLabels[user?.role] || user?.role}
-                    </span>
-                  </span>
-                </div>
-                <div className="profile-item">
-                  <span className="label">User ID (MongoDB)</span>
-                  <span className="value code-val">{user?.id}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Architecture Roadmap Notice */}
-        <section className="modules-overview">
-          <div className="section-title">
-            <h3>Configuration Management Roadmap</h3>
-            <p>Phases 5 through 8 operational and verified with live MongoDB persistence:</p>
-          </div>
-
-          <div className="module-cards-grid">
-            <div className="module-card active-module">
-              <div className="module-icon">📁</div>
-              <h4>Project & Portfolio</h4>
-              <p>Multi-project workspace registration, membership, and baselines.</p>
-              <span className="badge-active">Phase 5 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">🚀</div>
-              <h4>Releases & SemVer</h4>
-              <p>Semantic version milestones, change records, and release lifecycle states.</p>
-              <span className="badge-active">Phase 6 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">📝</div>
-              <h4>Change Requests (CRs)</h4>
-              <p>Formal change proposals, risk evaluation, and approval boards.</p>
-              <span className="badge-active">Phase 7 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">🐛</div>
-              <h4>Bug & Defect Tracking</h4>
-              <p>Defect triage, reproduction steps, developer assignment, and resolution.</p>
-              <span className="badge-active">Phase 7 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">📊</div>
-              <h4>Release Notes &amp; Governance</h4>
-              <p>Release packaging, governance approvals, automated notes, and audit metrics.</p>
-              <span className="badge-active">Phase 8 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">📈</div>
-              <h4>Reports &amp; SCM Analytics</h4>
-              <p>System-wide metrics, defect quality analysis, release governance, and exportable analytics.</p>
-              <span className="badge-active">Phase 9 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">🔄</div>
-              <h4>Unity Version Control (SCM)</h4>
-              <p>Traceable changeset mapping, branches, and rollback history.</p>
-              <span className="badge-active">Phase 10 - Active</span>
-            </div>
-
-            <div className="module-card active-module">
-              <div className="module-icon">📜</div>
-              <h4>Audit &amp; Activity System</h4>
-              <p>Chronological SCM audit trails, actor attribution, and governance timelines.</p>
-              <span className="badge-active">Phase 13 - Active</span>
-            </div>
-
-            <div className="module-card active-module" id="card-roadmap-phase14">
-              <div className="module-icon">🧭</div>
-              <h4>Traceability Matrix</h4>
-              <p>End-to-end change request, defect, version baseline, and release lifecycle mapping.</p>
-              <span className="badge-active">Phase 14 - Active</span>
-            </div>
-
-            <div className="module-card active-module" id="card-roadmap-phase15">
-              <div className="module-icon">⚡</div>
-              <h4>Change Impact Analysis</h4>
-              <p>Downstream defect, baseline, and release propagation evaluation with dynamic risk severity.</p>
-              <span className="badge-active">Phase 15 - Active</span>
-            </div>
-
-            <div className="module-card active-module" id="card-roadmap-phase16">
-              <div className="module-icon">🛡️</div>
-              <h4>Release Readiness &amp; Governance</h4>
-              <p>Pre-publication 8-gate SCM audit, dynamic scoring, blocking conditions, and stage pipeline.</p>
-              <span className="badge-active">Phase 16 - Active</span>
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
 
       <Footer />

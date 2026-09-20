@@ -289,7 +289,7 @@ const Baselines = () => {
               Configuration Baselines
             </h1>
             <p className="page-subtitle" style={{ margin: 0, color: 'var(--text-muted)' }}>
-              Controlled configurations anchoring software versions to verified Unity Version Control changesets.
+              Anchor software versions to verified UVCS changesets.
             </p>
           </div>
 
@@ -304,17 +304,6 @@ const Baselines = () => {
           </div>
         </div>
 
-        {/* Viva / Architectural Insight Card */}
-        <div className="card" style={{ marginBottom: '1.5rem', background: '#f8fafc', borderLeft: '4px solid var(--primary)' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🛡️</span>
-            <div style={{ fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
-              <strong>Configuration Baseline Lifecycle:</strong> Unity Version Control manages the actual source-code configuration and changesets.
-              Smart SCM manages project, version, change, defect, and release metadata.
-              A <em>Configuration Baseline</em> establishes an immutable, controlled milestone linking a software version to a verified UVCS changeset.
-            </div>
-          </div>
-        </div>
 
         {/* Success / Error Alerts */}
         {successMessage && (
@@ -335,7 +324,7 @@ const Baselines = () => {
             <div className="stat-content">
               <span className="stat-label">Total Baselines</span>
               <span className="stat-value">{stats.totalBaselines}</span>
-              <span className="stat-subtext">Across all registered projects</span>
+              <span className="stat-subtext">All projects</span>
             </div>
           </div>
 
@@ -344,7 +333,7 @@ const Baselines = () => {
             <div className="stat-content">
               <span className="stat-label">Active Baselines</span>
               <span className="stat-value">{stats.activeBaselines}</span>
-              <span className="stat-subtext">Under continuous CM control</span>
+              <span className="stat-subtext">Live</span>
             </div>
           </div>
 
@@ -353,7 +342,7 @@ const Baselines = () => {
             <div className="stat-content">
               <span className="stat-label">Frozen Baselines</span>
               <span className="stat-value">{stats.frozenBaselines}</span>
-              <span className="stat-subtext">Locked for release deployment</span>
+              <span className="stat-subtext">Release-locked</span>
             </div>
           </div>
 
@@ -362,7 +351,7 @@ const Baselines = () => {
             <div className="stat-content">
               <span className="stat-label">UVCS Verified</span>
               <span className="stat-value">{stats.totalBaselines}</span>
-              <span className="stat-subtext">100% verified changesets</span>
+              <span className="stat-subtext">100% verified</span>
             </div>
           </div>
         </div>
@@ -438,11 +427,8 @@ const Baselines = () => {
 
         {/* Baselines Table / Grid */}
         <section className="card" id="baselines-table-card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3>Controlled Configuration Baselines ({baselines.length})</h3>
-            <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-              SOURCE: UNITY VERSION CONTROL & SMART SCM
-            </span>
+          <div className="card-header">
+            <h3>Configuration Baselines ({baselines.length})</h3>
           </div>
 
           <div className="card-body" style={{ padding: 0 }}>
@@ -456,7 +442,7 @@ const Baselines = () => {
                 <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📦</div>
                 <h4 style={{ margin: '0 0 0.5rem 0' }}>No Configuration Baselines Found</h4>
                 <p style={{ color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto 1.25rem auto' }}>
-                  No baselines match the current filter criteria. Create a Configuration Baseline to anchor a software version to a verified UVCS changeset milestone.
+                  No baselines match the current filters.
                 </p>
                 <button onClick={handleOpenCreateModal} className="btn-action-primary">
                   + Create First Baseline
@@ -729,9 +715,6 @@ const Baselines = () => {
                     </div>
                   </div>
 
-                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.78rem', color: '#64748b' }}>
-                    The backend will query the local UVCS CLI (`cm.exe`) to strictly verify that changeset <code>cs:{createFormData.changesetId || '0'}</code> exists in repository <code>{createFormData.repository}</code> before storing.
-                  </p>
                 </div>
 
                 <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
@@ -778,9 +761,6 @@ const Baselines = () => {
                 <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span className="status-pill status-in_progress" style={{ fontSize: '1rem', fontWeight: '700' }}>
                     cs:{inspectingChangeset.changesetId}
-                  </span>
-                  <span className="badge-source-uvcs" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '4px', background: '#e0e7ff', color: '#3730a3', fontWeight: '700' }}>
-                    SOURCE: UNITY VERSION CONTROL
                   </span>
                 </div>
 

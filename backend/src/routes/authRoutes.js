@@ -6,6 +6,7 @@ const {
   getCurrentUser,
   googleLogin,
   getAuthConfig,
+  getUsers,
   updateUserRole
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
@@ -18,6 +19,7 @@ router.get('/config', getAuthConfig);
 
 // Protected routes
 router.get('/me', protect, getCurrentUser);
+router.get('/users', protect, getUsers);
 router.put('/users/:id/role', protect, updateUserRole);
 
 module.exports = router;

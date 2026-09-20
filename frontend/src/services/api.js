@@ -81,6 +81,19 @@ export const authService = {
     return await request('/auth/config', {
       method: 'GET'
     });
+  },
+
+  getUsers: async () => {
+    return await request('/auth/users', {
+      method: 'GET'
+    });
+  },
+
+  updateUserRole: async (userId, role) => {
+    return await request(`/auth/users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role })
+    });
   }
 };
 

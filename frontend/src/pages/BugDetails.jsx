@@ -465,14 +465,8 @@ const BugDetails = () => {
 
         {/* Configuration Management Traceability Section */}
         <div className="card traceability-card" style={{ marginTop: '1.5rem' }}>
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h3 style={{ margin: 0 }}>Configuration Management Traceability</h3>
-              <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Baseline linkages between this defect report, software version releases, and Unity Version Control.
-              </p>
-            </div>
-            <span className="badge-upcoming">SCM Traceability</span>
+          <div className="card-header">
+            <h3 style={{ margin: 0 }}>Traceability</h3>
           </div>
           <div className="card-body">
             <div className="traceability-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
