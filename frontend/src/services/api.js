@@ -94,6 +94,13 @@ export const authService = {
       method: 'PUT',
       body: JSON.stringify({ role })
     });
+  },
+
+  switchDemoRole: async (role) => {
+    return await request('/auth/demo-role', {
+      method: 'PUT',
+      body: JSON.stringify({ role })
+    });
   }
 };
 

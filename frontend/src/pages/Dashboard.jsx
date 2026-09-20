@@ -43,7 +43,27 @@ const getActivityIcon = (action) => {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, switchDemoRole } = useAuth();
+  const [isSwitchingDemoRole, setIsSwitchingDemoRole] = useState(false);
+  const [demoRoleFeedback, setDemoRoleFeedback] = useState('');
+
+  const handleDashboardDemoRoleChange = async (e) => {
+    const newRole = e.target.value;
+    if (!newRole || newRole === user?.role) return;
+    try {
+      setIsSwitchingDemoRole(true);
+      setDemoRoleFeedback('');
+      const res = await switchDemoRole(newRole);
+      if (res.success) {
+        setDemoRoleFeedback(`Role changed to ${roleLabels[newRole] || newRole}`);
+        setTimeout(() => setDemoRoleFeedback(''), 3500);
+      }
+    } catch (err) {
+      alert(err.message || 'Failed to switch demo role');
+    } finally {
+      setIsSwitchingDemoRole(false);
+    }
+  };
 
   // Project statistics state
   const [projectStats, setProjectStats] = useState({
@@ -564,6 +584,35 @@ const Dashboard = () => {
               <div><strong style={{ color: 'var(--text-main)' }}>{user?.name}</strong></div>
               <div>{user?.email}</div>
             </div>
+
+            {user && user.role !== 'admin' && (
+              <div className="dashboard-demo-role-section" id="dashboard-demo-role-section" style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Demo Role Switch
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Demonstration / Testing</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <select
+                    id="dashboard-demo-role-select"
+                    value={user.role}
+                    onChange={handleDashboardDemoRoleChange}
+                    disabled={isSwitchingDemoRole}
+                    style={{ flex: 1, fontSize: '0.85rem', padding: '0.35rem 0.6rem', borderRadius: '4px', border: '1px solid var(--border-color)', background: '#fff' }}
+                  >
+                    <option value="project_manager">Project Manager</option>
+                    <option value="developer">Developer</option>
+                    <option value="tester">QA / Tester</option>
+                  </select>
+                </div>
+                {demoRoleFeedback && (
+                  <div style={{ marginTop: '0.35rem', fontSize: '0.75rem', color: '#16a34a', fontWeight: 600 }}>
+                    ✓ {demoRoleFeedback}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>

@@ -73,6 +73,19 @@ export const AuthProvider = ({ children }) => {
     return response;
   };
 
+  // Demo Role Switch handler (for demonstration/testing)
+  const switchDemoRole = async (newRole) => {
+    const response = await authService.switchDemoRole(newRole);
+    if (response.success && response.user) {
+      if (response.token) {
+        localStorage.setItem('smart_scm_token', response.token);
+        setToken(response.token);
+      }
+      setUser(response.user);
+    }
+    return response;
+  };
+
   // Logout handler
   const logout = () => {
     localStorage.removeItem('smart_scm_token');
@@ -88,6 +101,7 @@ export const AuthProvider = ({ children }) => {
     login,
     googleLogin,
     register,
+    switchDemoRole,
     logout
   };
 

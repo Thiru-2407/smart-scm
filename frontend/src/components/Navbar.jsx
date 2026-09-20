@@ -106,7 +106,7 @@ const Navbar = () => {
         <div className="nav-user-actions">
           <div className="nav-user-info">
             <span className="user-name">{user?.name || 'User'}</span>
-            <span className={`role-badge role-${user?.role || 'developer'}`}>
+            <span className={`role-badge role-${user?.role || 'developer'}`} id="nav-user-role-badge">
               {roleLabels[user?.role] || user?.role}
             </span>
           </div>

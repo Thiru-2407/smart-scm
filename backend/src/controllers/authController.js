@@ -342,6 +342,65 @@ const getUsers = async (req, res) => {
   }
 };
 
+// @desc    Demo role switch for currently authenticated user (non-admin roles only)
+// @route   PUT /api/auth/demo-role
+// @access  Private
+const switchDemoRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+    const allowedDemoRoles = ['project_manager', 'developer', 'tester'];
+
+    // Strict security enforcement: Administrator role cannot be acquired via Demo Role Switch
+    if (role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Administrator role is restricted to the admin role-management system and cannot be selected via Demo Role Switch'
+      });
+    }
+
+    if (!allowedDemoRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid demo role. Allowed roles: ${allowedDemoRoles.join(', ')}`
+      });
+    }
+
+    // Always update strictly the currently authenticated user's own role
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.role = role;
+    await user.save();
+
+    // Generate fresh JWT token with the new role
+    const token = generateToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      message: `Demo role switched to ${role}`,
+      token,
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Server error switching demo role'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -349,5 +408,6 @@ module.exports = {
   googleLogin,
   getAuthConfig,
   getUsers,
-  updateUserRole
+  updateUserRole,
+  switchDemoRole
 };

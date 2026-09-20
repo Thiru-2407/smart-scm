@@ -7,7 +7,8 @@ const {
   googleLogin,
   getAuthConfig,
   getUsers,
-  updateUserRole
+  updateUserRole,
+  switchDemoRole
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -21,5 +22,6 @@ router.get('/config', getAuthConfig);
 router.get('/me', protect, getCurrentUser);
 router.get('/users', protect, getUsers);
 router.put('/users/:id/role', protect, updateUserRole);
+router.put('/demo-role', protect, switchDemoRole);
 
 module.exports = router;
